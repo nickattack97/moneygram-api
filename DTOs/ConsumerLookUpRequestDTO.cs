@@ -8,4 +8,5 @@ using System.Xml.Serialization;
 public class ConsumerLookUpRequestDTO
 {
     public required string CustomerPhone { get; set; }
+    public required int SendersToReturn { get; set; }
 }
