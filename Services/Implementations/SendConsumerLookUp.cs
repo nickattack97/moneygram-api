@@ -48,8 +48,8 @@ namespace moneygram_api.Services.Implementations
                         ChannelType = "LOCATION",
                         TimeStamp = DateTime.Now,
                         CustomerPhone = request.CustomerPhone ?? throw new ArgumentNullException(nameof(request.CustomerPhone)),
-                        MaxReceiversToReturn = 1,
-                        MaxSendersToReturn = 1,
+                        MaxReceiversToReturn = request.SendersToReturn,
+                        MaxSendersToReturn = request.SendersToReturn,
                     }
                 }
             };

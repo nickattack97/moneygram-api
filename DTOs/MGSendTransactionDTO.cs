@@ -4,6 +4,7 @@ namespace moneygram_api.DTOs
 {
     public class MGSendTransactionDTO
     {
+        public long? recordId { get; set; }
         public string? SessionID { get; set; }
         public string? ReferenceNumber { get; set; }
         public string SenderFirstName { get; set; }
@@ -20,6 +21,7 @@ namespace moneygram_api.DTOs
         public string SenderCity { get; set; }
         public string? SenderState { get; set; }
         public string SenderCountry { get; set; }
+        public string ReceiveCurrency { get; set; }
         public decimal Amount { get; set; }
         public string ReceiverFirstName { get; set; }
         public string ReceiverMiddleName { get; set; }
