@@ -8,5 +8,7 @@ namespace moneygram_api.Services.Interfaces
     public interface IFeeLookUp
     {
         Task<FeeLookUpResponse> FetchFeeLookUp(FeeLookUpRequestDTO request);
+        Task<FeeLookUpResponse> FetchFilteredFeeLookUp(FeeLookUpRequestDTO request);
+
     }
 }
