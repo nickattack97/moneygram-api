@@ -8,5 +8,6 @@ namespace moneygram_api.Services.Interfaces
     public interface IFetchCodeTable
     {
         Task<CodeTableResponse> Fetch(CodeTableRequestDTO request);
+        Task<CodeTableResponse> FetchFilteredCodeTable(FilteredCodeTableRequestDTO filters);
     }
 }

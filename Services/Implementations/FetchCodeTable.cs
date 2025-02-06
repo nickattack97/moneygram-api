@@ -85,5 +85,32 @@ namespace moneygram_api.Services.Implementations
                 throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
             }
         }
+    
+        public async Task<CodeTableResponse> FetchFilteredCodeTable(FilteredCodeTableRequestDTO filters)
+        {
+            var request = new CodeTableRequestDTO {AgentAllowedOnly = filters.AgentAllowedOnly };
+
+            var codeTableResponse = await Fetch(request);
+
+             // Filter the CountryCurrencyInfo list based on the provided countryCode and deliveryOption
+            var filteredCountryCurrencyInfo = codeTableResponse.CountryCurrencyInfo
+                .Where(cci => cci.CountryCode == filters.CountryCode && cci.DeliveryOption == filters.DeliveryOption)
+                .ToList();
+
+
+             // Create a new CodeTableResponse with the filtered data
+            var filteredCodeTable = new CodeTableResponse
+            {
+                DoCheckIn = codeTableResponse.DoCheckIn,
+                TimeStamp = codeTableResponse.TimeStamp,
+                Flags = filteredCountryCurrencyInfo.Count > 0 ? filteredCountryCurrencyInfo.Count : 0,
+                Version = codeTableResponse.Version,
+                StateProvinceInfo = null,
+                CountryCurrencyInfo = filteredCountryCurrencyInfo,
+                DeliveryOptionInfo = null
+            };
+
+            return filteredCodeTable;
+        }
     }
 }
