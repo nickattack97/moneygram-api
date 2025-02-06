@@ -51,6 +51,7 @@ namespace moneygram_api.Services.Implementations
                         OperatorName = "devTd",
                         ReceiveAmount = request.ReceiveAmount,
                         ReceiveCountry = request.ReceiveCountry ?? throw new ArgumentNullException(nameof(request.ReceiveCountry)),
+                        ReceiveCurrency = request.ReceiveCurrency ?? throw new ArgumentNullException(nameof(request.ReceiveCurrency)),
                         SendCountry = request.SendCountry ?? throw new ArgumentNullException(nameof(request.SendCountry)),
                         DeliveryOption = request.DeliveryOption ?? throw new ArgumentNullException(nameof(request.DeliveryOption)),
                         SendCurrency = request.SendCurrency ?? throw new ArgumentNullException(nameof(request.SendCurrency)),
@@ -91,6 +92,30 @@ namespace moneygram_api.Services.Implementations
             {
                 throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
             }
+        }
+    
+     public async Task<FeeLookUpResponse> FetchFilteredFeeLookUp(FeeLookUpRequestDTO filters)
+        {
+            var feeLookUpResponse = await FetchFeeLookUp(filters);
+
+            var filteredFeeInfo = feeLookUpResponse.FeeInfo
+                .Where(fi => fi.DeliveryOption == filters.DeliveryOption && fi.ValidReceiveCurrency == filters.ReceiveCurrency)
+                .ToList();
+
+            if(filteredFeeInfo.Count == 0)
+            {
+                throw new Exception("No fee information found for the provided filters");
+            }
+
+            var filteredFeeInfoResponse = new FeeLookUpResponse
+            {
+                DoCheckIn = feeLookUpResponse.DoCheckIn,
+                TimeStamp = feeLookUpResponse.TimeStamp,
+                Flags = filteredFeeInfo.Count,
+                FeeInfo = filteredFeeInfo,
+            };
+            
+            return filteredFeeInfoResponse;
         }
     }
 }

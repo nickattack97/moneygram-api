@@ -58,6 +58,9 @@ public class FeeLookUpRequest
     [XmlElement(ElementName = "deliveryOption", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
     public string DeliveryOption { get; set; }
 
+    [XmlElement(ElementName = "receiveCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ReceiveCurrency { get; set; }
+
     [XmlElement(ElementName = "sendCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
     public string SendCurrency { get; set; }
 
