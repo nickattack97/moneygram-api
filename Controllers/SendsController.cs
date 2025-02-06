@@ -79,6 +79,18 @@ namespace moneygram_api.Controllers
 
             return await HandleRequestAsync(() => _fetchCodeTable.Fetch(request), "SendsController.CodeTable");
         }
+        [HttpPost]
+        [Route("filtered-code-table")]
+        public async Task<IActionResult> FilteredCodeTable([FromBody] FilteredCodeTableRequestDTO request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request is null");
+            }
+
+            return await HandleRequestAsync(() => _fetchCodeTable.FetchFilteredCodeTable(request), "SendsController.FilteredCodeTable");
+        }
+
         [HttpGet]
         [Route("country-info")]
         public async Task<IActionResult> CountryInfo([FromQuery] string? countryCode = null)
@@ -96,6 +108,19 @@ namespace moneygram_api.Controllers
             }
 
             return await HandleRequestAsync(() => _feeLookUp.FetchFeeLookUp(request), "SendsController.FeeLookUp");
+        }
+
+
+        [HttpPost]
+        [Route("filtered-fee-lookup")]
+        public async Task<IActionResult> FilteredFeeLookUp([FromBody] FeeLookUpRequestDTO request)
+        {
+            if (request == null)
+            {
+                return BadRequest("Request is null");
+            }
+
+            return await HandleRequestAsync(() => _feeLookUp.FetchFilteredFeeLookUp(request), "SendsController.FilteredFeeLookUp");
         }
 
         [HttpPost]
