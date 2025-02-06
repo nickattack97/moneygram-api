@@ -190,4 +190,7 @@ public class SendValidationRequest
 
     [XmlElement(ElementName = "senderHomePhoneCountryCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderHomePhoneCountryCode { get; set; }
+    
+    [XmlElement(ElementName = "senderIntendedUseOfMGIServices", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string SenderIntendedUseOfMGIServices { get; set; }
 }

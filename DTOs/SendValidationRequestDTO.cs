@@ -43,6 +43,7 @@ namespace moneygram_api.DTOs
         public string MgiTransactionSessionID { get; set; }
         public bool FormFreeStaging { get; set; }
         public string SendPurposeOfTransaction { get; set; }
+        public string SenderIntendedUseOfMGIServices { get; set; }
         public string SourceOfFunds { get; set; }
         public string RelationshipToReceiver { get; set; }
         public string SenderGender { get; set; }

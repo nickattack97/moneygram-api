@@ -94,6 +94,7 @@ namespace moneygram_api.Services.Implementations
                         RelationshipToReceiver = request.RelationshipToReceiver,
                         SenderGender = request.SenderGender,
                         SenderCitizenshipCountry = request.SenderCitizenshipCountry,
+                        SenderIntendedUseOfMGIServices = request.SenderIntendedUseOfMGIServices,
                         SenderTransactionSMSNotificationOptIn = request.SenderTransactionSMSNotificationOptIn,
                         SenderHomePhoneNotAvailable = request.SenderHomePhoneNotAvailable,
                         SenderHomePhoneCountryCode = request.SenderHomePhoneCountryCode
