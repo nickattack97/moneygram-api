@@ -6,6 +6,7 @@ using moneygram_api.DTOs;
 using RestSharp;
 using System;
 using System.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using RequestEnvelope = moneygram_api.Models.CountryInfoRequest.Envelope;
 using RequestBody = moneygram_api.Models.CountryInfoRequest.Body;
 using ResponseEnvelope = moneygram_api.Models.CountryInfoResponse.Envelope;
@@ -76,7 +77,31 @@ namespace moneygram_api.Services.Implementations
                         .Where(c => c.CountryCode.Equals(countryCode, StringComparison.OrdinalIgnoreCase))
                         .ToList();
                 }
+
+                // Load country data from JSON
+                CountryDataLoader.LoadCountryData("Media/countries_data.json");
                 
+                // Enrich data with additional fields
+               foreach (var country in distinctCountries)
+                {
+                    var countryData = CountryDataLoader.GetCountryData(country.CountryCode);
+                    if (countryData != null)
+                    {
+                        country.Phone = countryData.Phone?.FirstOrDefault();
+                        country.Emoji = countryData.Emoji;
+                        country.Image = countryData.Image;
+
+                        if (countryData.PhoneLength is JArray phoneLengthArray)
+                        {
+                            country.PhoneLength = phoneLengthArray.ToObject<List<int>>();
+                        }
+                        else if (countryData.PhoneLength is JValue phoneLengthValue)
+                        {
+                            country.PhoneLength = new List<int> { phoneLengthValue.ToObject<int>() };
+                        }
+                    }
+                }
+
                 responseEnvelope.Body.CountryInfoResponse.CountryInfo = distinctCountries;
                 return responseEnvelope.Body.CountryInfoResponse;
             }

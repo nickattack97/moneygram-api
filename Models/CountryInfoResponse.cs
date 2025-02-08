@@ -63,5 +63,11 @@ namespace moneygram_api.Models.CountryInfoResponse
 
         [XmlElement(ElementName = "isZipCodeRequired", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public bool IsZipCodeRequired { get; set; }
+        
+        //Additional fields for data from countries_data.json
+        public string Phone { get; set; }
+        public string Emoji { get; set; }
+        public string Image { get; set; }
+        public List<int> PhoneLength { get; set; } = new();
     }
 }
