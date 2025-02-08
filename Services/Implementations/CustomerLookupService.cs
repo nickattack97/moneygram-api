@@ -2,6 +2,7 @@ using moneygram_api.Data;
 using moneygram_api.Models;
 using moneygram_api.Models.ConsumerLookUpResponse;
 using moneygram_api.Services.Interfaces;
+using moneygram_api.Enums;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -36,6 +37,7 @@ namespace moneygram_api.Services.Implementations
                         SenderFirstName = customer.FirstName,
                         SenderMiddleName = customer.MiddleName,
                         SenderLastName = customer.Surname,
+                        SenderGender = Enum.TryParse(customer.Gender.Trim().ToUpper(), out Gender gender) ? gender.ToString() : string.Empty,
                         SenderAddress = customer.Address,
                         SenderAddress2 = customer.Suburb,
                         SenderCity = customer.City,

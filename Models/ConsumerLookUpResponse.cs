@@ -44,6 +44,9 @@ public class SenderInfo
     [XmlElement(ElementName = "senderLastName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderLastName { get; set; }
 
+    [XmlElement(ElementName = "senderGender", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string SenderGender { get; set; }
+
     [XmlElement(ElementName = "senderAddress", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderAddress { get; set; }
 
