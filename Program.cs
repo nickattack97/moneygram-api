@@ -71,6 +71,9 @@ builder.Services.AddScoped<ICommitTransaction, CommitTransaction>();
 // Register the IGetCountryInfo service
 builder.Services.AddScoped<IGetCountryInfo, GetCountryInfo>();
 
+// Register the ICurrencyInfo service
+builder.Services.AddScoped<IFetchCurrencyInfo, FetchCurrencyInfo>();
+
 // Register the IConfigurations service
 builder.Services.AddSingleton<IConfigurations, Configurations>();
 

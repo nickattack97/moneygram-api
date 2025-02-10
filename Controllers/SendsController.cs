@@ -9,8 +9,10 @@ using moneygram_api.Models.CommitTransactionResponse;
 using moneygram_api.Services.Interfaces;
 using moneygram_api.DTOs;
 using moneygram_api.Exceptions;
+using moneygram_api.Utilities;
 using System.Threading.Tasks;
 using moneygram_api.Models;
+using moneygram_api.Utilities;
 
 namespace moneygram_api.Controllers
 {
@@ -26,16 +28,29 @@ namespace moneygram_api.Controllers
         private readonly ISendValidation _sendValidation;
         private readonly ICommitTransaction _commitTransaction;
         private readonly IGetCountryInfo _fetchCountryInfo;
+        private readonly IFetchCurrencyInfo _fetchCurrencyInfo;
         private readonly ICustomerLookupService _customerLookupService;
         private readonly IMGSendTransactionService _sendTransactionService;
-        private readonly ILoggingService _loggingService; // Add this line
+        private readonly ILoggingService _loggingService; 
 
-        public SendsController(ISendConsumerLookUp sendConsumerLookUp, IFetchCodeTable fetchCodeTable, IGetCountryInfo fetchCountryInfo, IFeeLookUp feeLookUp, IGFFP gffp, ISendValidation sendValidation, ICommitTransaction commitTransaction, ICustomerLookupService customerLookupService, IMGSendTransactionService sendTransactionService, ILoggingService loggingService) // Add ILoggingService parameter
+        public SendsController(
+            ISendConsumerLookUp sendConsumerLookUp,
+            IFetchCodeTable fetchCodeTable,
+            IGetCountryInfo fetchCountryInfo,
+            IFetchCurrencyInfo fetchCurrencyInfo,
+            IFeeLookUp feeLookUp,
+            IGFFP gffp,
+            ISendValidation sendValidation,
+            ICommitTransaction commitTransaction,
+            ICustomerLookupService customerLookupService,
+            IMGSendTransactionService sendTransactionService,
+            ILoggingService loggingService)
         {
             _sendConsumerLookUp = sendConsumerLookUp;
             _fetchCodeTable = fetchCodeTable;
             _feeLookUp = feeLookUp;
             _fetchCountryInfo = fetchCountryInfo;
+            _fetchCurrencyInfo = fetchCurrencyInfo;
             _gffp = gffp;
             _sendValidation = sendValidation;
             _commitTransaction = commitTransaction;
@@ -44,75 +59,82 @@ namespace moneygram_api.Controllers
             _loggingService = loggingService; 
         }
 
-        [HttpPost]
-        [Route("consumer-lookup")]
+        [HttpPost("consumer-lookup")]
         public async Task<IActionResult> ConsumerLookUp([FromBody] ConsumerLookUpRequestDTO request)
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "consumerLookUpRequest"));
             }
 
             return await HandleRequestAsync(() => _sendConsumerLookUp.Push(request), "SendsController.ConsumerLookUp");
         }
         
-        [HttpGet]
-        [Route("customer-lookup/{nationalID}")]
+        [HttpGet("customer-lookup/{nationalID}")]
         public async Task<IActionResult> CustomerLookup(string nationalID)
         {
             if (string.IsNullOrEmpty(nationalID))
             {
-                return BadRequest("National ID is null or empty");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "nationalID"));
             }
 
             return await HandleRequestAsync(() => _customerLookupService.GetCustomerByNationalIDAsync(nationalID), "SendsController.CustomerLookup");
         }
 
-        [HttpPost]
-        [Route("code-table")]
+        [HttpPost("code-table")]
         public async Task<IActionResult> CodeTable([FromBody] CodeTableRequestDTO request)
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "codeTableRequest"));
             }
 
             return await HandleRequestAsync(() => _fetchCodeTable.Fetch(request), "SendsController.CodeTable");
         }
-        [HttpPost]
-        [Route("filtered-code-table")]
+        [HttpPost("filtered-code-table")]
         public async Task<IActionResult> FilteredCodeTable([FromBody] FilteredCodeTableRequestDTO request)
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "filteredCodeTableRequest"));
             }
 
             return await HandleRequestAsync(() => _fetchCodeTable.FetchFilteredCodeTable(request), "SendsController.FilteredCodeTable");
         }
-
-        [HttpGet]
-        [Route("country-info")]
+        [HttpGet("country-info")]
         public async Task<IActionResult> CountryInfo([FromQuery] string? countryCode = null)
         {
             return await HandleRequestAsync(() => _fetchCountryInfo.Fetch(countryCode), "SendsController.CountryInfo");
         }
 
-        [HttpPost]
-        [Route("fee-lookup")]
+        [HttpGet("currency-info")]
+        public async Task<IActionResult> CurrencyInfo()
+        {
+            return await HandleRequestAsync(() => _fetchCurrencyInfo.Fetch(), "CurrencyInfo");
+        }
+
+        [HttpGet("filtered-currency-info/{currencyCode}")]
+        public async Task<IActionResult> FilteredCurrencyInfo(string currencyCode)
+        {
+            if (string.IsNullOrEmpty(currencyCode))
+            {
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "currencyCode"));
+            }
+
+            return await HandleRequestAsync(() => _fetchCurrencyInfo.FetchByCurrencyCode(currencyCode), "FilteredCurrencyInfo");
+        }
+
+        [HttpPost("fee-lookup")]
         public async Task<IActionResult> FeeLookUp([FromBody] FeeLookUpRequestDTO request)
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "feeLookupRequest"));
             }
 
-            return await HandleRequestAsync(() => _feeLookUp.FetchFeeLookUp(request), "SendsController.FeeLookUp");
+            return await HandleRequestAsync(() => _feeLookUp.FetchFeeLookUp(request), "FeeLookUp");
         }
-
-
-        [HttpPost]
-        [Route("filtered-fee-lookup")]
+        [HttpPost("filtered-fee-lookup")]
         public async Task<IActionResult> FilteredFeeLookUp([FromBody] FeeLookUpRequestDTO request)
         {
             if (request == null)
@@ -122,9 +144,7 @@ namespace moneygram_api.Controllers
 
             return await HandleRequestAsync(() => _feeLookUp.FetchFilteredFeeLookUp(request), "SendsController.FilteredFeeLookUp");
         }
-
-        [HttpPost]
-        [Route("gffp")]
+        [HttpPost("gffp")]
         public async Task<IActionResult> GetFieldsForProduct([FromBody] GFFPRequestDTO request)
         {
             if (request == null)
@@ -135,8 +155,7 @@ namespace moneygram_api.Controllers
             return await HandleRequestAsync(() => _gffp.FetchFieldsForProduct(request), "SendsController.GFFP");
         }
 
-        [HttpPost]
-        [Route("send-validation")]
+        [HttpPost("send-validation")]
         public async Task<IActionResult> SendValidation([FromBody] SendValidationRequestDTO request)
         {
             if (request == null)
@@ -146,32 +165,29 @@ namespace moneygram_api.Controllers
 
             return await HandleRequestAsync(() => _sendValidation.Push(request), "SendsController.SendValidation");
         }
-
-        [HttpPost]
-        [Route("commit-transaction")]
+        [HttpPost("commit-transaction")]
         public async Task<IActionResult> CommitTransaction([FromBody] CommitRequestDTO request)
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "commitTransactionRequest"));
             }
 
-            return await HandleRequestAsync(() => _commitTransaction.Commit(request), "SendsController.CommitTransaction");
+            return await HandleRequestAsync(() => _commitTransaction.Commit(request), "CommitTransaction");
         }
 
-        [HttpPost]
-        [Route("log-transaction")]
+        [HttpPost("log-transaction")]
         public async Task<IActionResult> LogTransaction([FromBody] MGSendTransactionDTO transaction)
         {
             if (transaction == null)
             {
-                return BadRequest("Transaction is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "logTransactionRequest"));
             }
 
-            return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "SendsController.LogTransaction");
+            return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "LogTransaction");
         }
 
-        private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string offendingField)
+        private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string actionName)
         {
             try
             {
@@ -187,24 +203,41 @@ namespace moneygram_api.Controllers
                     ex.OffendingField,
                     ex.TimeStamp
                 };
-                await LogExceptionAsync(ex, offendingField); // Log the exception
+                await LogExceptionAsync(ex, actionName);
                 return StatusCode(500, soapFaultResponse);
             }
             catch (Exception ex)
             {
-                var genericException = new
+                if (ex.Message.Contains("Service Unavailable"))
                 {
-                    ErrorCode = 400,
-                    ErrorMessage = ex.Message,
-                    OffendingField = offendingField,
-                    TimeStamp = DateTime.Now
-                };
-                await LogExceptionAsync(ex, offendingField); // Log the exception
-                return StatusCode(400, genericException);
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503, actionName);
+                    var serviceUnavailableResponse = new
+                    {
+                        errorResponse.ErrorCode,
+                        errorResponse.ErrorMessage,
+                        errorResponse.OffendingField,
+                        TimeStamp = DateTime.UtcNow
+                    };
+                    await LogExceptionAsync(ex, actionName);
+                    return StatusCode(503, serviceUnavailableResponse);
+                }
+                else
+                {
+                    var error = ErrorDictionary.GetErrorResponse(500, actionName);
+                    var genericException = new
+                    {
+                        error.ErrorCode,
+                        error.ErrorMessage,
+                        error.OffendingField,
+                        TimeStamp = DateTime.UtcNow
+                    };
+                    await LogExceptionAsync(ex, actionName);
+                    return StatusCode(500, genericException);
+                }
             }
         }
 
-        private async Task LogExceptionAsync(Exception ex, string offendingField)
+        private async Task LogExceptionAsync(Exception ex, string actionName)
         {
             var exceptionLog = new ExceptionLog
             {
