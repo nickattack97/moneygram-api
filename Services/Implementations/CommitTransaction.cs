@@ -60,7 +60,16 @@ namespace moneygram_api.Services.Implementations
 
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
-            var response = await client.ExecuteAsync(restRequest);
+            var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
+            {
+                var res = await client.ExecuteAsync(restRequest);
+                if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                }
+                return res;
+            });
 
             if (response.IsSuccessful)
             {
@@ -83,6 +92,11 @@ namespace moneygram_api.Services.Implementations
                 {
                     throw new Exception("Response content is null");
                 }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
             }
             else
             {

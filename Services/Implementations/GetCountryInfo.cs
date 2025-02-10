@@ -23,6 +23,7 @@ namespace moneygram_api.Services.Implementations
         {
             _configurations = configurations;
         }
+
         public async Task<CountryInfoResponse> Fetch(string? countryCode = null)
         {
             var options = new RestClientOptions(_configurations.BaseUrl)
@@ -56,7 +57,16 @@ namespace moneygram_api.Services.Implementations
 
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
-            var response = await client.ExecuteAsync(restRequest);
+            var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
+            {
+                var res = await client.ExecuteAsync(restRequest);
+                if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                }
+                return res;
+            });
 
             if (response.IsSuccessful)
             {
@@ -82,7 +92,7 @@ namespace moneygram_api.Services.Implementations
                 CountryDataLoader.LoadCountryData("Media/countries_data.json");
                 
                 // Enrich data with additional fields
-               foreach (var country in distinctCountries)
+                foreach (var country in distinctCountries)
                 {
                     var countryData = CountryDataLoader.GetCountryData(country.CountryCode);
                     if (countryData != null)
@@ -116,6 +126,11 @@ namespace moneygram_api.Services.Implementations
                 {
                     throw new Exception("Response content is null");
                 }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
             }
             else
             {

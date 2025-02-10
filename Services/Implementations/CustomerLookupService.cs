@@ -1,11 +1,14 @@
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using moneygram_api.Data;
+using moneygram_api.Enums;
+using moneygram_api.Utilities;
 using moneygram_api.Models;
 using moneygram_api.Models.ConsumerLookUpResponse;
 using moneygram_api.Services.Interfaces;
-using moneygram_api.Enums;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using moneygram_api.Exceptions;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -23,7 +26,8 @@ namespace moneygram_api.Services.Implementations
             var customer = await _context.tblClientele.FirstOrDefaultAsync(c => c.NationalID == nationalID);
             if (customer == null)
             {
-                throw new Exception("Customer not found");
+                var error = ErrorDictionary.GetErrorResponse(616, "nationalId");
+                throw new SoapFaultException(error.ErrorCode, error.ErrorMessage, error.OffendingField, DateTime.UtcNow);
             }
 
             var response = new MoneyGramConsumerLookupResponse

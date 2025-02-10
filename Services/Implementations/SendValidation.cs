@@ -35,7 +35,6 @@ namespace moneygram_api.Services.Implementations
             var restRequest = new RestRequest(_configurations.Resource, Method.Post);
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#sendValidation");
             restRequest.AddHeader("Content-Type", "application/xml");
-            restRequest.AddHeader("Cookie", "incap_ses_1018_2443955=GO7YG7wOAUj4UTbTyakgDiZcWWcAAAAAHJgpxrF9flvB+aG0TsxRQA==; incap_ses_1021_2443955=UQqIIZRyhgQc589kSlIrDghuWGcAAAAAhfdSbPQaLfOnP48BUlPoJA==; nlbi_2443955=1rTMXGJcKWqxzeo5DQOeYgAAAAC2GJxMTQZ5Ec/5fuh3d4xW; visid_incap_2443955=2MrhAMFHS1izzAXJr0ZFVtuhD2cAAAAAQUIPAAAAAADXLrkPmKTaHmWdVzJQKR23");
 
             var envelope = new RequestEnvelope
             {
@@ -64,7 +63,8 @@ namespace moneygram_api.Services.Implementations
                         SenderCountry = request.SenderCountry,
                         SenderHomePhone = request.SenderHomePhone,
                         ReceiverFirstName = request.ReceiverFirstName,
-                        ReceiverMiddleName = string.IsNullOrEmpty(request.ReceiverMiddleName) ? null : request.ReceiverMiddleName,                        ReceiverLastName = request.ReceiverLastName,
+                        ReceiverMiddleName = string.IsNullOrEmpty(request.ReceiverMiddleName) ? null : request.ReceiverMiddleName,
+                        ReceiverLastName = request.ReceiverLastName,
                         ReceiverAddress = request.ReceiverAddress,
                         ReceiverAddress2 = request.ReceiverAddress2,
                         ReceiverCity = request.ReceiverCity,
@@ -106,7 +106,16 @@ namespace moneygram_api.Services.Implementations
 
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
-            var response = await client.ExecuteAsync(restRequest);
+            var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
+            {
+                var res = await client.ExecuteAsync(restRequest);
+                if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                }
+                return res;
+            });
 
             if (response.IsSuccessful)
             {
@@ -129,6 +138,11 @@ namespace moneygram_api.Services.Implementations
                 {
                     throw new Exception("Response content is null");
                 }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
             }
             else
             {
