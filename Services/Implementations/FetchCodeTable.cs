@@ -17,10 +17,12 @@ namespace moneygram_api.Services.Implementations
     public class FetchCodeTable : IFetchCodeTable
     {
         private readonly IConfigurations _configurations;
+        private readonly IFetchCurrencyInfo _fetchCurrencyInfo;
 
-        public FetchCodeTable(IConfigurations configurations)
+        public FetchCodeTable(IConfigurations configurations, IFetchCurrencyInfo fetchCurrencyInfo)
         {
             _configurations = configurations;
+            _fetchCurrencyInfo = fetchCurrencyInfo;
         }
 
         public async Task<CodeTableResponse> Fetch(CodeTableRequestDTO request)
@@ -56,7 +58,16 @@ namespace moneygram_api.Services.Implementations
 
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
-            var response = await client.ExecuteAsync(restRequest);
+            var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
+            {
+                var res = await client.ExecuteAsync(restRequest);
+                if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                }
+                return res;
+            });
 
             if (response.IsSuccessful)
             {
@@ -80,30 +91,43 @@ namespace moneygram_api.Services.Implementations
                     throw new Exception("Response content is null");
                 }
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+            }
             else
             {
                 throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
             }
         }
-    
+
         public async Task<CodeTableResponse> FetchFilteredCodeTable(FilteredCodeTableRequestDTO filters)
         {
-            var request = new CodeTableRequestDTO {AgentAllowedOnly = filters.AgentAllowedOnly };
+            var request = new CodeTableRequestDTO { AgentAllowedOnly = filters.AgentAllowedOnly };
 
             var codeTableResponse = await Fetch(request);
 
-             // Filter the CountryCurrencyInfo list based on the provided countryCode and deliveryOption
+            // Filter the CountryCurrencyInfo list based on the provided countryCode and deliveryOption.
             var filteredCountryCurrencyInfo = codeTableResponse.CountryCurrencyInfo
                 .Where(cci => cci.CountryCode == filters.CountryCode && cci.DeliveryOption == filters.DeliveryOption)
                 .ToList();
 
+            // Optimize: Fetch all currency info concurrently.
+            var tasks = filteredCountryCurrencyInfo.Select(async currencyInfo =>
+            {
+                var receiveCurrencyInfo = await _fetchCurrencyInfo.FetchByCurrencyCode(currencyInfo.ReceiveCurrency);
+                currencyInfo.ReceiveCurrencyName = receiveCurrencyInfo.CurrencyInfo.FirstOrDefault()?.CurrencyName;
+            }).ToList();
 
-             // Create a new CodeTableResponse with the filtered data
+            await Task.WhenAll(tasks);
+
+            // Create a new CodeTableResponse with the filtered data.
             var filteredCodeTable = new CodeTableResponse
             {
                 DoCheckIn = codeTableResponse.DoCheckIn,
                 TimeStamp = codeTableResponse.TimeStamp,
-                Flags = filteredCountryCurrencyInfo.Count > 0 ? filteredCountryCurrencyInfo.Count : 0,
+                Flags = filteredCountryCurrencyInfo.Count,
                 Version = codeTableResponse.Version,
                 StateProvinceInfo = null,
                 CountryCurrencyInfo = filteredCountryCurrencyInfo,

@@ -61,12 +61,21 @@ public class CountryCurrencyInfo
 
     [XmlElement(ElementName = "baseCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string BaseCurrency { get; set; }
+    [XmlElement(ElementName = "baseCurrencyName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? BaseCurrencyName { get; set; }
 
     [XmlElement(ElementName = "localCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string LocalCurrency { get; set; }
+        
+    [XmlElement(ElementName = "localCurrencyName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? LocalCurrencyName { get; set; }
 
     [XmlElement(ElementName = "receiveCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiveCurrency { get; set; }
+
+    [XmlElement(ElementName = "receiveCurrencyName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string ReceiveCurrencyName { get; set; }
+
 
     [XmlElement(ElementName = "indicativeRateAvailable", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public bool IndicativeRateAvailable { get; set; }
