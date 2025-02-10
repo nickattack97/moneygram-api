@@ -24,11 +24,11 @@ namespace moneygram_api.DTOs
         public string ReceiveCurrency { get; set; }
         public decimal Amount { get; set; }
         public string ReceiverFirstName { get; set; }
-        public string ReceiverMiddleName { get; set; }
+        public string? ReceiverMiddleName { get; set; }
         public string ReceiverLastName { get; set; }
         public string ReceiverAddress1 { get; set; }
         public string ReceiverAddress2 { get; set; }
-        public string ReceiverAddress3 { get; set; }
+        public string? ReceiverAddress3 { get; set; }
         public string ReceiverCity { get; set; }
         public string? ReceiverState { get; set; }
         public string? ReceiverZipCode { get; set; }
