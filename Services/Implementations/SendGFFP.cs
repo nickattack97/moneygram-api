@@ -32,7 +32,6 @@ namespace moneygram_api.Services.Implementations
             var restRequest = new RestRequest(_configurations.Resource, Method.Post);
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#getFieldsForProduct");
             restRequest.AddHeader("Content-Type", "application/xml");
-            restRequest.AddHeader("Cookie", "incap_ses_1018_2443955=SyYzAM4xd1oUKDXRyakgDt8JWGcAAAAAQYtntJhzk08U92hnA2tg2A==; incap_ses_1021_2443955=UQqIIZRyhgQc589kSlIrDghuWGcAAAAAhfdSbPQaLfOnP48BUlPoJA==; nlbi_2443955=1rTMXGJcKWqxzeo5DQOeYgAAAAC2GJxMTQZ5Ec/5fuh3d4xW; visid_incap_2443955=2MrhAMFHS1izzAXJr0ZFVtuhD2cAAAAAQUIPAAAAAADXLrkPmKTaHmWdVzJQKR23");
 
             var envelope = new RequestEnvelope
             {
@@ -65,7 +64,16 @@ namespace moneygram_api.Services.Implementations
 
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
-            var response = await client.ExecuteAsync(restRequest);
+            var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
+            {
+                var res = await client.ExecuteAsync(restRequest);
+                if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                {
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                }
+                return res;
+            });
 
             if (response.IsSuccessful)
             {
@@ -88,6 +96,11 @@ namespace moneygram_api.Services.Implementations
                 {
                     throw new Exception("Response content is null");
                 }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
             }
             else
             {
