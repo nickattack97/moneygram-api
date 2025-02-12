@@ -17,7 +17,10 @@ namespace moneygram_api.Services.Implementations
         {
             _context = context;
         }
-
+        public async Task<List<SendTransaction>> GetSendTransactionsAsync()
+        {
+            return await _context.SendTransactions.ToListAsync();
+        }
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
         {
             var existingTransaction = await _context.SendTransactions.FirstOrDefaultAsync(t => 

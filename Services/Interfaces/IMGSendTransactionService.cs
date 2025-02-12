@@ -6,6 +6,7 @@ namespace moneygram_api.Services.Interfaces
 {
     public interface IMGSendTransactionService
     {
+        Task<List<SendTransaction>> GetSendTransactionsAsync();
         Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction);
     }
 }
