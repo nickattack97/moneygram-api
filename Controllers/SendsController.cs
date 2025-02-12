@@ -44,7 +44,8 @@ namespace moneygram_api.Controllers
             ICommitTransaction commitTransaction,
             ICustomerLookupService customerLookupService,
             IMGSendTransactionService sendTransactionService,
-            ILoggingService loggingService)
+            ILoggingService loggingService
+        )
         {
             _sendConsumerLookUp = sendConsumerLookUp;
             _fetchCodeTable = fetchCodeTable;
@@ -56,7 +57,8 @@ namespace moneygram_api.Controllers
             _commitTransaction = commitTransaction;
             _customerLookupService = customerLookupService;
             _sendTransactionService = sendTransactionService;
-            _loggingService = loggingService; 
+            _loggingService = loggingService;
+            _sendTransactionService = sendTransactionService;
         }
 
         [HttpPost("consumer-lookup")]
@@ -187,6 +189,11 @@ namespace moneygram_api.Controllers
             return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "LogTransaction");
         }
 
+        [HttpGet("get-send-transactions")]
+        public async Task<IActionResult> GetSendTransactions()
+       {
+            return await HandleRequestAsync(() => _sendTransactionService.GetSendTransactionsAsync(), "GetSendTransactions");
+        }
         private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string actionName)
         {
             try
