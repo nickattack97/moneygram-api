@@ -48,10 +48,13 @@ namespace moneygram_api.Models
         public string? ReceiverDOB { get; set; }
         public string? ReceiverCountryOfBirth { get; set; }
         public string? ReceiverPhoneNumber { get; set; }
-        public string? SendCurrency { get; set; }
         public string? ReceiveCurrency { get; set; }
-        public decimal? Amount { get; set; }
+        public decimal? ReceiveAmount { get; set; }
+        public string? SendCurrency { get; set; }
+        public decimal? SendAmount { get; set; }
         public decimal? Charge { get; set; }
+        public decimal? TotalAmountCollected { get; set; }
+        public decimal? ExchangeRate { get; set; }
         public string? ConsumerID { get; set; }
         public string? Occupation { get; set; }
         public string? TransactionPurpose { get; set; }
@@ -61,9 +64,8 @@ namespace moneygram_api.Models
         public string? District { get; set; }
         public string? Surburb { get; set; }
         public DateTime? AddDate { get; set; }
-        public string? Checker { get; set; }
         public bool? Successful { get; set; }
-        public bool? Commited { get; set; }
+        public bool? Committed { get; set; }
         public DateTime? CommitDate { get; set; }
         public bool? Processed { get; set; }
         public DateTime? ProcessDate { get; set; }

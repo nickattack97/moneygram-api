@@ -1,9 +1,10 @@
 using moneygram_api.Data;
 using moneygram_api.Models;
 using moneygram_api.Services.Interfaces;
-using System.Threading.Tasks;
 using moneygram_api.DTOs;
 using System;
+using System.Linq;
+using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace moneygram_api.Services.Implementations
@@ -19,108 +20,147 @@ namespace moneygram_api.Services.Implementations
 
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
         {
-            // Check if the record already exists
-            var existingTransaction = await _context.SendTransactions
-                .FirstOrDefaultAsync(t => t.ID == transaction.recordId);
+            var existingTransaction = await _context.SendTransactions.FirstOrDefaultAsync(t => 
+                t.ID == transaction.recordId || 
+                (t.SessionID == transaction.SessionID));
 
             if (existingTransaction != null)
             {
-                // Update the existing record
-                existingTransaction.SessionID = transaction.SessionID;
-                existingTransaction.ReferenceNumber = transaction.ReferenceNumber;
-                existingTransaction.Sender = $"{transaction.SenderFirstName} {transaction.SenderMiddleName} {transaction.SenderLastName}".Trim();
-                existingTransaction.SenderFirstName = transaction.SenderFirstName;
-                existingTransaction.SenderMiddleName = transaction.SenderMiddleName;
-                existingTransaction.SenderLastName = transaction.SenderLastName;
-                existingTransaction.SenderGender = transaction.SenderGender;
-                existingTransaction.SenderDOB = transaction.SenderDOB;
-                existingTransaction.SenderPhotoIDType = transaction.SenderPhotoIdType;
-                existingTransaction.SenderPhotoIDNumber = transaction.SenderPhotoIdNumber;
-                existingTransaction.SenderAddress1 = transaction.SenderAddress1;
-                existingTransaction.SenderAddress2 = transaction.SenderAddress2;
-                existingTransaction.SenderAddress3 = transaction.SenderAddress3;
-                existingTransaction.OriginatingCountry = transaction.SenderCountry;
-                existingTransaction.SendCurrency = "USD";
-                existingTransaction.ReceiveCurrency = transaction.ReceiveCurrency;
-                existingTransaction.Amount = transaction.Amount;
-                existingTransaction.Receiver = $"{transaction.ReceiverFirstName} {transaction.ReceiverMiddleName} {transaction.ReceiverLastName}".Trim();
-                existingTransaction.ReceiverFirstName = transaction.ReceiverFirstName;
-                existingTransaction.ReceiverMiddleName = transaction.ReceiverMiddleName;
-                existingTransaction.ReceiverLastName = transaction.ReceiverLastName;
-                existingTransaction.ReceiverAddress1 = transaction.ReceiverAddress1;
-                existingTransaction.ReceiverAddress2 = transaction.ReceiverAddress2;
-                existingTransaction.ReceiverAddress3 = transaction.ReceiverAddress3;
-                existingTransaction.ReceiverCity = transaction.ReceiverCity;
-                existingTransaction.ReceiverCountry = transaction.ReceiverCountry;
-                existingTransaction.ReceiverState = transaction.ReceiverState;
-                existingTransaction.ReceiverZipCode = transaction.ReceiverZipCode;
-                existingTransaction.ReceiverPhotoIDType = transaction.ReceiverPhotoIDType;
-                existingTransaction.ReceiverPhotoIDNumber = transaction.ReceiverPhotoIDNumber;
-
+                UpdateTransaction(existingTransaction, transaction);
                 _context.SendTransactions.Update(existingTransaction);
             }
             else
             {
-                // Create a new record
-                var transactionModel = new SendTransaction
-                {
-                    SessionID = transaction.SessionID,
-                    ReferenceNumber = transaction.ReferenceNumber,
-                    Sender = $"{transaction.SenderFirstName} {transaction.SenderMiddleName} {transaction.SenderLastName}".Trim(),
-                    SenderFirstName = transaction.SenderFirstName,
-                    SenderMiddleName = transaction.SenderMiddleName,
-                    SenderLastName = transaction.SenderLastName,
-                    SenderGender = transaction.SenderGender,
-                    SenderDOB = transaction.SenderDOB,
-                    SenderPhotoIDType = transaction.SenderPhotoIdType,
-                    SenderPhotoIDNumber = transaction.SenderPhotoIdNumber,
-                    SenderAddress1 = transaction.SenderAddress1,
-                    SenderAddress2 = transaction.SenderAddress2,
-                    SenderAddress3 = transaction.SenderAddress3,
-                    OriginatingCountry = transaction.SenderCountry,
-                    SendCurrency = "USD",
-                    ReceiveCurrency = transaction.ReceiveCurrency,
-                    Amount = transaction.Amount,
-                    Receiver = $"{transaction.ReceiverFirstName} {transaction.ReceiverMiddleName} {transaction.ReceiverLastName}".Trim(),
-                    ReceiverFirstName = transaction.ReceiverFirstName,
-                    ReceiverMiddleName = transaction.ReceiverMiddleName,
-                    ReceiverLastName = transaction.ReceiverLastName,
-                    ReceiverAddress1 = transaction.ReceiverAddress1,
-                    ReceiverAddress2 = transaction.ReceiverAddress2,
-                    ReceiverAddress3 = transaction.ReceiverAddress3,
-                    ReceiverCity = transaction.ReceiverCity,
-                    ReceiverCountry = transaction.ReceiverCountry,
-                    ReceiverState = transaction.ReceiverState,
-                    ReceiverZipCode = transaction.ReceiverZipCode,
-                    ReceiverPhotoIDType = transaction.ReceiverPhotoIDType,
-                    ReceiverPhotoIDNumber = transaction.ReceiverPhotoIDNumber,
-                };
-
-                _context.SendTransactions.Add(transactionModel);
+                existingTransaction = CreateNewTransaction(transaction);
+                _context.SendTransactions.Add(existingTransaction);
             }
 
-            // Save changes to the database
             var result = await _context.SaveChangesAsync();
 
-            if (result > 0)
+            return new Response
             {
-                return new Response
-                {
-                    Success = true,
-                    TimeStamp = DateTime.Now,
-                    RecordId = (existingTransaction?.ID ?? _context.SendTransactions.Local.FirstOrDefault()?.ID) ?? 0,
-                    Message = existingTransaction != null ? "Transaction updated successfully." : "Transaction logged successfully."
-                };
-            }
-            else
+                Success = result > 0,
+                TimeStamp = DateTime.Now,
+                RecordId = existingTransaction?.ID ?? 0,
+                Message = result > 0 ? (existingTransaction != null ? "Transaction updated successfully." : "Transaction logged successfully.") : "Failed to log/update transaction."
+            };
+        }
+
+        private void UpdateTransaction(SendTransaction existing, MGSendTransactionDTO transaction)
+        {
+            existing.SessionID = UpdateIfNull(existing.SessionID, transaction.SessionID);
+            existing.ReferenceNumber = UpdateIfNull(existing.ReferenceNumber, transaction.ReferenceNumber);
+
+            existing.SenderFirstName = UpdateIfNull(existing.SenderFirstName, transaction.SenderFirstName);
+            existing.SenderMiddleName = UpdateIfNull(existing.SenderMiddleName, transaction.SenderMiddleName);
+            existing.SenderLastName = UpdateIfNull(existing.SenderLastName, transaction.SenderLastName);
+            existing.Sender = ConcatenateNames(existing.SenderFirstName, existing.SenderMiddleName, existing.SenderLastName);
+
+            existing.SenderGender = UpdateIfNull(existing.SenderGender, transaction.SenderGender);
+            existing.SenderDOB = UpdateIfNull(existing.SenderDOB, transaction.SenderDOB);
+            existing.SenderPhotoIDType = UpdateIfNull(existing.SenderPhotoIDType, transaction.SenderPhotoIdType);
+            existing.SenderPhotoIDNumber = UpdateIfNull(existing.SenderPhotoIDNumber, transaction.SenderPhotoIdNumber);
+            existing.SenderAddress1 = UpdateIfNull(existing.SenderAddress1, transaction.SenderAddress1);
+            existing.SenderAddress2 = UpdateIfNull(existing.SenderAddress2, transaction.SenderAddress2);
+            existing.SenderAddress3 = UpdateIfNull(existing.SenderAddress3, transaction.SenderAddress3);
+            existing.SenderCity = UpdateIfNull(existing.SenderCity, transaction.SenderCity);
+            existing.SenderCountry = UpdateIfNull(existing.SenderCountry, transaction.SenderCountry);
+            existing.OriginatingCountry = UpdateIfNull(existing.OriginatingCountry, transaction.SenderCountry);
+            existing.SenderPhoneNumber = UpdateIfNull(existing.SenderPhoneNumber, transaction.SenderPhoneNumber);
+
+            existing.SendCurrency = existing.SendCurrency ?? "USD";
+            existing.ReceiveCurrency = UpdateIfNull(existing.ReceiveCurrency, transaction.ReceiveCurrency);
+            existing.Charge = UpdateIfNull(existing.Charge, transaction.Charge);
+            existing.ReceiveAmount = UpdateIfNull(existing.ReceiveAmount, transaction.ReceiveAmount);
+            existing.SendAmount = UpdateIfNull(existing.SendAmount, transaction.SendAmount);
+            existing.ExchangeRate = UpdateIfNull(existing.ExchangeRate, transaction.ExchangeRate);
+            existing.TotalAmountCollected = UpdateIfNull(existing.TotalAmountCollected, transaction.TotalAmountCollected);
+            
+            existing.ReceiverFirstName = UpdateIfNull(existing.ReceiverFirstName, transaction.ReceiverFirstName);
+            existing.ReceiverMiddleName = UpdateIfNull(existing.ReceiverMiddleName, transaction.ReceiverMiddleName);
+            existing.ReceiverLastName = UpdateIfNull(existing.ReceiverLastName, transaction.ReceiverLastName);
+            existing.Receiver = ConcatenateNames(existing.ReceiverFirstName, existing.ReceiverMiddleName, existing.ReceiverLastName);
+
+            existing.ReceiverAddress1 = UpdateIfNull(existing.ReceiverAddress1, transaction.ReceiverAddress1);
+            existing.ReceiverAddress2 = UpdateIfNull(existing.ReceiverAddress2, transaction.ReceiverAddress2);
+            existing.ReceiverAddress3 = UpdateIfNull(existing.ReceiverAddress3, transaction.ReceiverAddress3);
+            existing.ReceiverCity = UpdateIfNull(existing.ReceiverCity, transaction.ReceiverCity);
+            existing.ReceiverCountry = UpdateIfNull(existing.ReceiverCountry, transaction.ReceiverCountry);
+            existing.ReceiverState = UpdateIfNull(existing.ReceiverState, transaction.ReceiverState);
+            existing.ReceiverZipCode = UpdateIfNull(existing.ReceiverZipCode, transaction.ReceiverZipCode);
+            existing.ReceiverPhotoIDType = UpdateIfNull(existing.ReceiverPhotoIDType, transaction.ReceiverPhotoIDType);
+            existing.ReceiverPhotoIDNumber = UpdateIfNull(existing.ReceiverPhotoIDNumber, transaction.ReceiverPhotoIDNumber);
+            existing.ReceiverPhoneNumber = UpdateIfNull(existing.ReceiverPhoneNumber, transaction.ReceiverPhoneNumber);
+
+            existing.Occupation = UpdateIfNull(existing.Occupation, transaction.Occupation);
+            existing.TransactionPurpose = UpdateIfNull(existing.TransactionPurpose, transaction.TransactionPurpose);
+            existing.SourceOfFunds = UpdateIfNull(existing.SourceOfFunds, transaction.SourceOfFunds);
+            existing.ConsumerID = UpdateIfNull(existing.ConsumerID, transaction.ConsumerID);
+
+            existing.FormFree = UpdateIfNull(existing.FormFree, transaction.FormFree);
+            existing.AddDate = UpdateIfNull(existing.AddDate, transaction.AddDate);
+            existing.Successful = UpdateIfNull(existing.Successful, transaction.Successful);
+            existing.Committed = UpdateIfNull(existing.Committed, transaction.Committed);
+            existing.CommitDate = UpdateIfNull(existing.CommitDate, transaction.CommitDate);
+            existing.Processed = UpdateIfNull(existing.Processed, transaction.Processed);
+            existing.ProcessDate = UpdateIfNull(existing.ProcessDate, transaction.ProcessDate);
+            
+        }
+
+        private SendTransaction CreateNewTransaction(MGSendTransactionDTO transaction)
+        {
+            return new SendTransaction
             {
-                return new Response
-                {
-                    Success = false,
-                    TimeStamp = DateTime.Now,
-                    Message = "Failed to log/update transaction."
-                };
-            }
+                SessionID = transaction.SessionID,
+                ReferenceNumber = transaction.ReferenceNumber,
+                SenderFirstName = transaction.SenderFirstName,
+                SenderMiddleName = transaction.SenderMiddleName,
+                SenderLastName = transaction.SenderLastName,
+                Sender = ConcatenateNames(transaction.SenderFirstName, transaction.SenderMiddleName, transaction.SenderLastName),
+                SenderGender = transaction.SenderGender,
+                SenderDOB = transaction.SenderDOB,
+                SenderPhotoIDType = transaction.SenderPhotoIdType,
+                SenderPhotoIDNumber = transaction.SenderPhotoIdNumber,
+                SenderAddress1 = transaction.SenderAddress1,
+                SenderAddress2 = transaction.SenderAddress2,
+                SenderAddress3 = transaction.SenderAddress3,
+                SenderCity = transaction.SenderCity,
+                SenderCountry = transaction.SenderCountry,
+                OriginatingCountry = transaction.SenderCountry,
+                SenderPhoneNumber = transaction.SenderPhoneNumber,
+                SendCurrency = "USD",
+                ReceiveCurrency = transaction.ReceiveCurrency,
+                Charge = transaction.Charge,
+                ReceiveAmount = transaction.ReceiveAmount,
+                SendAmount = transaction.SendAmount,
+                ReceiverFirstName = transaction.ReceiverFirstName,
+                ReceiverMiddleName = transaction.ReceiverMiddleName,
+                ReceiverLastName = transaction.ReceiverLastName,
+                Receiver = ConcatenateNames(transaction.ReceiverFirstName, transaction.ReceiverMiddleName, transaction.ReceiverLastName),
+                ReceiverAddress1 = transaction.ReceiverAddress1,
+                ReceiverAddress2 = transaction.ReceiverAddress2,
+                ReceiverAddress3 = transaction.ReceiverAddress3,
+                ReceiverCity = transaction.ReceiverCity,
+                ReceiverCountry = transaction.ReceiverCountry,
+                ReceiverState = transaction.ReceiverState,
+                ReceiverZipCode = transaction.ReceiverZipCode,
+                ReceiverPhotoIDType = transaction.ReceiverPhotoIDType,
+                ReceiverPhotoIDNumber = transaction.ReceiverPhotoIDNumber,
+                Occupation = transaction.Occupation,
+                TransactionPurpose = transaction.TransactionPurpose,
+                SourceOfFunds = transaction.SourceOfFunds,
+                ConsumerID = transaction.ConsumerID,
+            };
+        }
+
+        private static T UpdateIfNull<T>(T existingValue, T newValue)
+        {
+            return existingValue == null ? newValue : existingValue;
+        }
+
+        private string ConcatenateNames(params string[] names)
+        {
+            return string.Join(" ", names.Where(name => !string.IsNullOrEmpty(name))).Trim();
         }
     }
 }
