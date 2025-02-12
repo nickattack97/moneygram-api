@@ -20,8 +20,12 @@ namespace moneygram_api.Data
 
             modelBuilder.Entity<SendTransaction>(entity =>
             {
-                entity.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SendAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ReceiveAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.SendAmount).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.ExchangeRate).HasColumnType("decimal(18,4)");
                 entity.Property(e => e.Charge).HasColumnType("decimal(18,2)");
+                entity.Property(e => e.TotalAmountCollected).HasColumnType("decimal(18,2)");
             });
         }
     }
