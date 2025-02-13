@@ -10,6 +10,7 @@ using RequestBody = moneygram_api.Models.FeeLookUpRequest.Body;
 using ResponseEnvelope = moneygram_api.Models.FeeLookUpResponse.Envelope;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using System.Linq;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -94,7 +95,7 @@ namespace moneygram_api.Services.Implementations
             }
         }
     
-     public async Task<FeeLookUpResponse> FetchFilteredFeeLookUp(FeeLookUpRequestDTO filters)
+        public async Task<FeeLookUpResponse> FetchFilteredFeeLookUp(FeeLookUpRequestDTO filters)
         {
             var feeLookUpResponse = await FetchFeeLookUp(filters);
 
@@ -102,9 +103,10 @@ namespace moneygram_api.Services.Implementations
                 .Where(fi => fi.DeliveryOption == filters.DeliveryOption && fi.ValidReceiveCurrency == filters.ReceiveCurrency)
                 .ToList();
 
-            if(filteredFeeInfo.Count == 0)
+            if (filteredFeeInfo.Count == 0)
             {
-                throw new Exception("No fee information found for the provided filters");
+                var errorResponse = ErrorDictionary.GetErrorResponse(204, "filteredFeeInfo");
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
             }
 
             var filteredFeeInfoResponse = new FeeLookUpResponse

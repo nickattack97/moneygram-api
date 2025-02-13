@@ -141,7 +141,7 @@ namespace moneygram_api.Controllers
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "feeLookupRequest"));
             }
 
             return await HandleRequestAsync(() => _feeLookUp.FetchFilteredFeeLookUp(request), "SendsController.FilteredFeeLookUp");
@@ -223,10 +223,23 @@ namespace moneygram_api.Controllers
                         errorResponse.ErrorCode,
                         errorResponse.ErrorMessage,
                         errorResponse.OffendingField,
-                        TimeStamp = DateTime.UtcNow
+                        TimeStamp = DateTime.Now
                     };
                     await LogExceptionAsync(ex, actionName);
                     return StatusCode(503, serviceUnavailableResponse);
+                }
+                else if (ex.Message.Contains("No fee information found for the provided filters"))
+                {
+                    var errorResponse = ErrorDictionary.GetErrorResponse(204, actionName);
+                    var noFeeInfoResponse = new
+                    {
+                        errorResponse.ErrorCode,
+                        errorResponse.ErrorMessage,
+                        errorResponse.OffendingField,
+                        TimeStamp = DateTime.Now
+                    };
+                    await LogExceptionAsync(ex, actionName);
+                    return StatusCode(404, noFeeInfoResponse);
                 }
                 else
                 {

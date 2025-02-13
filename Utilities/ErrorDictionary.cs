@@ -10,7 +10,8 @@ namespace moneygram_api.Utilities
             { 616, new ErrorResponse(616, "Customer is not found", "customerPhone") },
             { 404, new ErrorResponse(404, "Resource not found", "resourceId") },
             { 400, new ErrorResponse(400, "Invalid request", "requestBody") },
-            { 503, new ErrorResponse(503, "Service Unavailable", "service") } // Added 503 status code
+            { 503, new ErrorResponse(503, "Service Unavailable", "service") },
+            { 204, new ErrorResponse(204, "No fee information found for the provided filters", "filteredFeeInfo") } // Added 204 status code
         };
 
         public static ErrorResponse GetErrorResponse(int errorCode, string offendingField = null)
