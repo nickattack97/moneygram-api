@@ -110,7 +110,7 @@ namespace moneygram_api.Services.Implementations
 
             // Filter the CountryCurrencyInfo list based on the provided countryCode and deliveryOption.
             var filteredCountryCurrencyInfo = codeTableResponse.CountryCurrencyInfo
-                .Where(cci => cci.CountryCode == filters.CountryCode && cci.DeliveryOption == filters.DeliveryOption)
+                .Where(cci => cci.CountryCode == filters.CountryCode /*&& cci.DeliveryOption == filters.DeliveryOption*/)
                 .ToList();
 
             // Optimize: Fetch all currency info concurrently.
