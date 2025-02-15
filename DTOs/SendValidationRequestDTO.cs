@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace moneygram_api.DTOs
 {
     public class SendValidationRequestDTO
@@ -8,6 +11,8 @@ namespace moneygram_api.DTOs
         public string DestinationCountry { get; set; }
         public string DeliveryOption { get; set; }
         public string ReceiveCurrency { get; set; }
+        public string? ReceiveAgentID { get; set; }
+        public string? AccountNumber { get; set; }
         public string SenderFirstName { get; set; }
         public string SenderLastName { get; set; }
         public string SenderAddress { get; set; }
@@ -16,7 +21,7 @@ namespace moneygram_api.DTOs
         public string SenderCountry { get; set; }
         public string SenderHomePhone { get; set; }
         public string ReceiverFirstName { get; set; }
-        public string ReceiverMiddleName { get; set; }
+        public string? ReceiverMiddleName { get; set; }
         public string ReceiverLastName { get; set; }
         public string ReceiverAddress { get; set; }
         public string ReceiverAddress2 { get; set; }
@@ -43,7 +48,6 @@ namespace moneygram_api.DTOs
         public string MgiTransactionSessionID { get; set; }
         public bool FormFreeStaging { get; set; }
         public string SendPurposeOfTransaction { get; set; }
-        public string SenderIntendedUseOfMGIServices { get; set; }
         public string SourceOfFunds { get; set; }
         public string RelationshipToReceiver { get; set; }
         public string SenderGender { get; set; }
@@ -51,5 +55,13 @@ namespace moneygram_api.DTOs
         public bool SenderTransactionSMSNotificationOptIn { get; set; }
         public bool SenderHomePhoneNotAvailable { get; set; }
         public string SenderHomePhoneCountryCode { get; set; }
+        public string SenderIntendedUseOfMGIServices { get; set; }
+        public List<KeyValuePair>? FieldValues { get; set; } 
+    }
+
+    public class KeyValuePair
+    {
+        public string XmlTag { get; set; }
+        public string FieldValue { get; set; }
     }
 }
