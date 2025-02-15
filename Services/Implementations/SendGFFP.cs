@@ -49,16 +49,23 @@ namespace moneygram_api.Services.Implementations
                         ReceiveCountry = request.ReceiveCountry,
                         DeliveryOption = request.DeliveryOption,
                         ThirdPartyType = "NONE",
-                        CustomerReceiveNumber = request.CustomerReceiveNumber,
                         ReceiveCurrency = request.ReceiveCurrency,
+                        ReceiveAgentID = request.ReceiveAgentID,    
                         Amount = request.Amount,
                         SendCurrency = request.SendCurrency,
                         ProductType = "SEND",
                         ConsumerId = 0,
-                        FormFreeStaging = false
+                        FormFreeStaging = false,
+                        CustomerReceiveNumber = string.IsNullOrEmpty(request.CustomerReceiveNumber) ? null : request.CustomerReceiveNumber
                     }
                 }
             };
+
+            // Remove the CustomerReceiveNumber element if it is null
+            if (string.IsNullOrEmpty(request.CustomerReceiveNumber))
+            {
+                envelope.Body.GetFieldsForProductRequest.CustomerReceiveNumber = null;
+            }
 
             var body = envelope.ToString();
 
