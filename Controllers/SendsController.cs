@@ -58,7 +58,6 @@ namespace moneygram_api.Controllers
             _customerLookupService = customerLookupService;
             _sendTransactionService = sendTransactionService;
             _loggingService = loggingService;
-            _sendTransactionService = sendTransactionService;
         }
 
         [HttpPost("consumer-lookup")]
@@ -217,7 +216,7 @@ namespace moneygram_api.Controllers
             {
                 if (ex.Message.Contains("Service Unavailable"))
                 {
-                    var errorResponse = ErrorDictionary.GetErrorResponse(503, actionName);
+                    var errorResponse = ErrorDictionary.GetErrorResponse(503, ex.Message, actionName);
                     var serviceUnavailableResponse = new
                     {
                         errorResponse.ErrorCode,
@@ -230,7 +229,7 @@ namespace moneygram_api.Controllers
                 }
                 else if (ex.Message.Contains("No fee information found for the provided filters"))
                 {
-                    var errorResponse = ErrorDictionary.GetErrorResponse(204, actionName);
+                    var errorResponse = ErrorDictionary.GetErrorResponse(204, ex.Message, actionName);
                     var noFeeInfoResponse = new
                     {
                         errorResponse.ErrorCode,
@@ -243,12 +242,12 @@ namespace moneygram_api.Controllers
                 }
                 else
                 {
-                    var error = ErrorDictionary.GetErrorResponse(500, actionName);
+                    var errorResponse = ErrorDictionary.GetErrorResponse(500, ex.Message, actionName);
                     var genericException = new
                     {
-                        error.ErrorCode,
-                        error.ErrorMessage,
-                        error.OffendingField,
+                        errorResponse.ErrorCode,
+                        errorResponse.ErrorMessage,
+                        errorResponse.OffendingField,
                         TimeStamp = DateTime.UtcNow
                     };
                     await LogExceptionAsync(ex, actionName);
