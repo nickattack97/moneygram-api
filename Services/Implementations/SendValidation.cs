@@ -7,6 +7,7 @@ using moneygram_api.Settings;
 using RequestEnvelope = moneygram_api.Models.SendValidationRequest.Envelope;
 using RequestBody = moneygram_api.Models.SendValidationRequest.Body;
 using ResponseEnvelope = moneygram_api.Models.SendValidationResponse.Envelope;
+using KeyValuePair = moneygram_api.Models.SendValidationRequest.KeyValuePair;
 using moneygram_api.DTOs;
 using moneygram_api.Models;
 using System.Xml.Serialization;
@@ -53,6 +54,8 @@ namespace moneygram_api.Services.Implementations
                         Amount = request.Amount,
                         FeeAmount = request.FeeAmount,
                         DestinationCountry = request.DestinationCountry,
+                        ReceiveAgentID = request.ReceiveAgentID,
+                        AccountNumber = request.AccountNumber,
                         DeliveryOption = request.DeliveryOption,
                         ReceiveCurrency = request.ReceiveCurrency,
                         SenderFirstName = request.SenderFirstName,
@@ -97,7 +100,12 @@ namespace moneygram_api.Services.Implementations
                         SenderIntendedUseOfMGIServices = request.SenderIntendedUseOfMGIServices,
                         SenderTransactionSMSNotificationOptIn = request.SenderTransactionSMSNotificationOptIn,
                         SenderHomePhoneNotAvailable = request.SenderHomePhoneNotAvailable,
-                        SenderHomePhoneCountryCode = request.SenderHomePhoneCountryCode
+                        SenderHomePhoneCountryCode = request.SenderHomePhoneCountryCode,
+                        FieldValues = request.FieldValues != null ? request.FieldValues.Select(fv => new KeyValuePair
+                        {
+                            XmlTag = fv.XmlTag,
+                            FieldValue = fv.FieldValue
+                        }).ToList() : new List<KeyValuePair>()
                     }
                 }
             };

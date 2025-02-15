@@ -58,6 +58,12 @@ public class SendValidationRequest
     [XmlElement(ElementName = "receiveCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiveCurrency { get; set; }
 
+    [XmlElement(ElementName = "receiveAgentID", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? ReceiveAgentID { get; set; }
+
+    [XmlElement(ElementName = "accountNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? AccountNumber { get; set; }
+
     [XmlElement(ElementName = "senderFirstName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderFirstName { get; set; }
 
@@ -193,4 +199,17 @@ public class SendValidationRequest
     
     [XmlElement(ElementName = "senderIntendedUseOfMGIServices", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderIntendedUseOfMGIServices { get; set; }
+
+    [XmlArray(ElementName = "fieldValues", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    [XmlArrayItem(ElementName = "keyValuePair", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public List<KeyValuePair> FieldValues { get; set; }
+}
+
+public class KeyValuePair
+{
+    [XmlElement(ElementName = "xmlTag", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string XmlTag { get; set; }
+
+    [XmlElement(ElementName = "fieldValue", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string FieldValue { get; set; }
 }

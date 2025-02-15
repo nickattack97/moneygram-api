@@ -32,8 +32,17 @@ public class SendValidationResponse
     [XmlElement(ElementName = "mgiTransactionSessionID", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string MgiTransactionSessionID { get; set; }
 
+    [XmlElement(ElementName = "customerReceiveNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string CustomerReceiveNumber { get; set; }
+
+    [XmlElement(ElementName = "displayAccountID", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string DisplayAccountID { get; set; }
+
     [XmlElement(ElementName = "readyForCommit", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public bool ReadyForCommit { get; set; }
+
+    [XmlElement(ElementName = "receiveAgentName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string ReceiveAgentName { get; set; }
 
     [XmlElement(ElementName = "receiveAgentAddress", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiveAgentAddress { get; set; }
