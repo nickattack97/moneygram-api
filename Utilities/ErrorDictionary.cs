@@ -11,10 +11,10 @@ namespace moneygram_api.Utilities
             { 404, new ErrorResponse(404, "Resource not found", "resourceId") },
             { 400, new ErrorResponse(400, "Invalid request", "requestBody") },
             { 503, new ErrorResponse(503, "Service Unavailable", "service") },
-            { 204, new ErrorResponse(204, "No fee information found for the provided filters", "filteredFeeInfo") } // Added 204 status code
+            { 204, new ErrorResponse(204, "No fee information found for the provided filters", "filteredFeeInfo") }
         };
 
-        public static ErrorResponse GetErrorResponse(int errorCode, string offendingField = null)
+        public static ErrorResponse GetErrorResponse(int errorCode, string errorMessage = null, string offendingField = null)
         {
             if (_errorResponses.TryGetValue(errorCode, out var errorResponse))
             {
@@ -25,7 +25,7 @@ namespace moneygram_api.Utilities
                 );
             }
 
-            return new ErrorResponse(500, "Unknown error occurred", offendingField);
+            return new ErrorResponse(errorCode, errorMessage ?? "Unknown error occurred", offendingField);
         }
     }
 

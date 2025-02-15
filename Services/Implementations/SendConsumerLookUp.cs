@@ -82,6 +82,11 @@ namespace moneygram_api.Services.Implementations
                     throw new Exception("Response content is null");
                 }
             }
+            else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            {
+                var errorResponse = ErrorDictionary.GetErrorResponse(503);
+                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+            }
             else
             {
                 throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
