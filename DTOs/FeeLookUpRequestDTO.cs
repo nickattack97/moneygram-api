@@ -7,7 +7,6 @@ namespace moneygram_api.DTOs
         public required string SendCountry { get; set; }
         public required string DeliveryOption { get; set; }
         public string? ReceiveAgentID { get; set; }
-
         public required string SendCurrency { get; set; }
         public required string ReceiveCurrency { get; set; }
     }
