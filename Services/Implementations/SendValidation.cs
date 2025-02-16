@@ -56,6 +56,7 @@ namespace moneygram_api.Services.Implementations
                         DestinationCountry = request.DestinationCountry,
                         ReceiveAgentID = string.IsNullOrEmpty(request.ReceiveAgentID) ? null : request.ReceiveAgentID,
                         AccountNumber = string.IsNullOrEmpty(request.AccountNumber) ? null : request.AccountNumber,
+                        MgiRewardsNumber = string.IsNullOrEmpty(request.RewardsNumber) ? null : request.RewardsNumber,
                         DeliveryOption = request.DeliveryOption,
                         ReceiveCurrency = request.ReceiveCurrency,
                         SenderFirstName = request.SenderFirstName,
@@ -101,6 +102,7 @@ namespace moneygram_api.Services.Implementations
                         SenderTransactionSMSNotificationOptIn = request.SenderTransactionSMSNotificationOptIn,
                         SenderHomePhoneNotAvailable = request.SenderHomePhoneNotAvailable,
                         SenderHomePhoneCountryCode = request.SenderHomePhoneCountryCode,
+                        PromoCodeValues = string.IsNullOrEmpty(request.PromoCode) ? new List<string>() : new List<string> { request.PromoCode },
                         FieldValues = request.FieldValues != null ? request.FieldValues.Select(fv => new KeyValuePair
                         {
                             XmlTag = fv.XmlTag,

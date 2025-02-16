@@ -12,6 +12,7 @@ namespace moneygram_api.DTOs
         public string DeliveryOption { get; set; }
         public string ReceiveCurrency { get; set; }
         public string? ReceiveAgentID { get; set; }
+        public string? RewardsNumber { get; set; }
         public string? AccountNumber { get; set; }
         public string SenderFirstName { get; set; }
         public string SenderLastName { get; set; }
@@ -56,6 +57,7 @@ namespace moneygram_api.DTOs
         public bool SenderHomePhoneNotAvailable { get; set; }
         public string SenderHomePhoneCountryCode { get; set; }
         public string SenderIntendedUseOfMGIServices { get; set; }
+        public string? PromoCode { get; set; }
         public List<KeyValuePair>? FieldValues { get; set; } 
     }
 

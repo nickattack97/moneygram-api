@@ -49,6 +49,9 @@ public class SendValidationRequest
     [XmlElement(ElementName = "feeAmount", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public decimal FeeAmount { get; set; }
 
+    [XmlElement(ElementName = "mgiRewardsNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? MgiRewardsNumber { get; set; }
+
     [XmlElement(ElementName = "destinationCountry", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string DestinationCountry { get; set; }
 
@@ -199,6 +202,10 @@ public class SendValidationRequest
     
     [XmlElement(ElementName = "senderIntendedUseOfMGIServices", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderIntendedUseOfMGIServices { get; set; }
+         
+    [XmlArray(ElementName = "promoCodeValues", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    [XmlArrayItem(ElementName = "promoCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public List<string> PromoCodeValues { get; set; }
 
     [XmlArray(ElementName = "fieldValues", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     [XmlArrayItem(ElementName = "keyValuePair", Namespace = "http://www.moneygram.com/AgentConnect1512")]
