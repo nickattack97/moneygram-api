@@ -89,6 +89,10 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 // Register the IMGSendTransactionService
 builder.Services.AddScoped<IMGSendTransactionService, MGSendTransactionService>();
 
+// Register the ISaveRewards service
+builder.Services.AddScoped<ISaveRewards, SaveRewards>();
+
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {

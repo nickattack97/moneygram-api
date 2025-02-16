@@ -31,6 +31,7 @@ namespace moneygram_api.Controllers
         private readonly IFetchCurrencyInfo _fetchCurrencyInfo;
         private readonly ICustomerLookupService _customerLookupService;
         private readonly IMGSendTransactionService _sendTransactionService;
+        private readonly ISaveRewards _saveRewards;
         private readonly ILoggingService _loggingService; 
 
         public SendsController(
@@ -44,7 +45,8 @@ namespace moneygram_api.Controllers
             ICommitTransaction commitTransaction,
             ICustomerLookupService customerLookupService,
             IMGSendTransactionService sendTransactionService,
-            ILoggingService loggingService
+            ILoggingService loggingService,
+            ISaveRewards saveRewards
         )
         {
             _sendConsumerLookUp = sendConsumerLookUp;
@@ -58,6 +60,7 @@ namespace moneygram_api.Controllers
             _customerLookupService = customerLookupService;
             _sendTransactionService = sendTransactionService;
             _loggingService = loggingService;
+            _saveRewards = saveRewards;
         }
 
         [HttpPost("consumer-lookup")]
@@ -186,6 +189,17 @@ namespace moneygram_api.Controllers
             }
 
             return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "LogTransaction");
+        }
+
+        [HttpPost("save-rewards")]
+        public async Task<IActionResult> SaveRewards([FromBody] SaveRewardsRequestDTO request)
+        {
+            if (request == null)
+            {
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "saveRewardsRequest"));
+            }
+
+            return await HandleRequestAsync(() => _saveRewards.Save(request), "SaveRewards");
         }
 
         [HttpGet("get-send-transactions")]
