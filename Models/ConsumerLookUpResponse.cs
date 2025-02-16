@@ -130,6 +130,20 @@ public class ReceiverInfo
 
     [XmlElement(ElementName = "sendCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SendCurrency { get; set; }
+        [XmlElement(ElementName = "customerReceiveNumber", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string CustomerReceiveNumber { get; set; }
+
+    [XmlElement(ElementName = "displayAccountID", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string DisplayAccountID { get; set; }
+
+    [XmlElement(ElementName = "receiveAgentID", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ReceiveAgentID { get; set; }
+
+    [XmlElement(ElementName = "receiveAgentName", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ReceiveAgentName { get; set; }
+
+    [XmlElement(ElementName = "receiveAgentAbbreviation", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ReceiveAgentAbbreviation { get; set; }
 
     [XmlElement(ElementName = "receiveCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiveCurrency { get; set; }
