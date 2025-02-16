@@ -31,6 +31,15 @@ public class FeeLookUpResponse
 
     [XmlElement(ElementName = "feeInfo", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public List<FeeInfo> FeeInfo { get; set; }
+
+    [XmlElement(ElementName = "errorCode", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ErrorCode { get; set; }
+
+    [XmlElement(ElementName = "errorMessage", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ErrorMessage { get; set; }
+
+    [XmlElement(ElementName = "offendingField", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string OffendingField { get; set; }
 }
 
 public class FeeInfo
@@ -85,6 +94,15 @@ public class FeeInfo
 
     [XmlElement(ElementName = "receiveAmounts", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public ReceiveAmounts ReceiveAmounts { get; set; }
+
+    [XmlElement(ElementName = "exchangeRateApplied", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public decimal ExchangeRateApplied { get; set; }
+
+    [XmlElement(ElementName = "exchangeRateExpiration", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public DateTime ExchangeRateExpiration { get; set; }
+
+    [XmlElement(ElementName = "exchangeRateSource", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string ExchangeRateSource { get; set; }
 }
 
 public class SendAmounts

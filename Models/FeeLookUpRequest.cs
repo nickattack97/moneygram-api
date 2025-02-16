@@ -57,6 +57,11 @@ public class FeeLookUpRequest
 
     [XmlElement(ElementName = "deliveryOption", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
     public string DeliveryOption { get; set; }
+    [XmlElement(ElementName = "mgiRewardsNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? MgiRewardsNumber { get; set; }
+    
+    [XmlElement(ElementName = "receiveAgentID", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? ReceiveAgentID { get; set; }
 
     [XmlElement(ElementName = "receiveCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
     public string ReceiveCurrency { get; set; }
@@ -64,6 +69,13 @@ public class FeeLookUpRequest
     [XmlElement(ElementName = "sendCurrency", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
     public string SendCurrency { get; set; }
 
+    [XmlElement(ElementName = "mgCustomerReceiveNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? MgCustomerReceiveNumber { get; set; }
+
     [XmlElement(ElementName = "allOptions", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public bool AllOptions { get; set; }
+     
+    [XmlArray(ElementName = "promoCodeValues", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    [XmlArrayItem(ElementName = "promoCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public List<string> PromoCodeValues { get; set; }
 }
