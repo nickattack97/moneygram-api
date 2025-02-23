@@ -11,6 +11,10 @@ autom4te.cache/
 tarballs/
 test-results/
 
+# Test keys
+test-keys/
+*.pem
+
 # Mac bundle stuff
 *.dmg
 *.app
