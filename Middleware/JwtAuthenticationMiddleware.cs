@@ -23,8 +23,10 @@ namespace moneygram_api.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            // Allow requests to Swagger and Auth endpoints without authentication
-            if (context.Request.Path.StartsWithSegments("/swagger") || context.Request.Path.StartsWithSegments("/api/auth"))
+            // Skip JWT validation for Webhook and other specific paths
+            if (context.Request.Path.StartsWithSegments("/sandbox/cbz-bank/moneygram") ||
+                context.Request.Path.StartsWithSegments("/swagger") ||
+                context.Request.Path.StartsWithSegments("/api/auth"))
             {
                 await _next(context);
                 return;
@@ -72,7 +74,6 @@ namespace moneygram_api.Middleware
             // Continue processing the request
             await _next(context);
         }
-
         private ClaimsPrincipal ValidateToken(string jwtToken)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
