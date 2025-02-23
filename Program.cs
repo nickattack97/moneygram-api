@@ -92,6 +92,11 @@ builder.Services.AddScoped<IMGSendTransactionService, MGSendTransactionService>(
 // Register the ISaveRewards service
 builder.Services.AddScoped<ISaveRewards, SaveRewards>();
 
+//Register the ISignatureVerificationService
+builder.Services.AddScoped<ISignatureVerificationService, SignatureVerificationService>();
+
+//Register the IpValidationService
+builder.Services.AddScoped<IIpValidationService, IpValidationService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
@@ -160,12 +165,14 @@ app.UseAuthorization();
 // Enable middleware to serve generated Swagger as a JSON endpoint
 app.UseSwagger();
 
-// Enable middleware to serve Swagger UI (HTML, JS, CSS, etc.), specifying the Swagger JSON endpoint
-app.UseSwaggerUI(options =>
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "MoneyGram API v1");
-    options.RoutePrefix = "swagger"; // Set Swagger UI at the app's root
-});
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "MoneyGram API v1");
+        options.RoutePrefix = "swagger"; 
+    });
+}
 
 app.MapControllers();
 
