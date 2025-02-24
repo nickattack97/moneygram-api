@@ -32,8 +32,7 @@ namespace moneygram_api.Services.Implementations
             }
 
             _logger.LogInformation($"Validating IP: {clientIp}");
-
-            if (_configurations.WhitelistedIps.Any(ip => IsIpMatch(clientIp, ip)))
+            if (_configurations.WhitelistedIps.Any(ip => IsIpMatch(clientIp.Trim(), ip.Trim())))
             {
                 _logger.LogInformation($"IP {clientIp} is whitelisted");
                 return true;
@@ -42,10 +41,12 @@ namespace moneygram_api.Services.Implementations
             _logger.LogWarning($"Access denied - IP: {clientIp}");
             return false;
         }
-
         private string GetClientIp(HttpContext context)
         {
-            return context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                ?? context.Request.Headers["X-Real-IP"].FirstOrDefault()
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown";
         }
 
         private bool IsIpMatch(string ipAddress, string whitelist)
