@@ -50,7 +50,7 @@ namespace moneygram_api.Controllers
                 {
                     var errorResponse = new
                     {
-                        Message = $"Unauthorized access attempt from IP: {clientIp}",
+                        Message = $"Unauthorized. IP not whitelisted.",
                         ClientIp = clientIp,
                         Timestamp = DateTime.UtcNow
                     };
@@ -92,7 +92,7 @@ namespace moneygram_api.Controllers
                 await ProcessTransactionStatusEvent(payload);
 
                 // Step 6: Return success response
-                return Ok();
+                return Ok("Event Processed");
             }
             catch (JsonException ex)
             {

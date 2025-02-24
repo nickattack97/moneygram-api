@@ -17,9 +17,6 @@ namespace moneygram_api.Settings
         string JwtAudience { get; }
         string PublicKey { get; }
         string[] WhitelistedIps { get; }
-        string[] WhitelistedProxies { get; }
-        bool EnableLocalDevelopment { get; }
-        string[] LocalDevelopmentIps { get; }
     }
 
     public class Configurations : IConfigurations
@@ -42,10 +39,6 @@ namespace moneygram_api.Settings
         public string JwtIssuer => _configuration.GetSection("JwtSettings")["Issuer"] ?? string.Empty;
         public string JwtAudience => _configuration.GetSection("JwtSettings")["Audience"] ?? string.Empty;
         public string PublicKey => _configuration.GetSection("WebhookSettings")["PublicKey"] ?? string.Empty;
-        public string[] WhitelistedIps => _configuration.GetSection("WebhookSettings")["WhitelistedIps"]?.Split(',') ?? Array.Empty<string>();
-        public string[] WhitelistedProxies => _configuration.GetSection("WebhookSettings")["WhitelistedProxies"]?.Split(',') ?? Array.Empty<string>();
-        public bool EnableLocalDevelopment => bool.TryParse(_configuration.GetSection("WebhookSettings")["EnableLocalDevelopment"], out var result) && result;
-        public string[] LocalDevelopmentIps => _configuration.GetSection("WebhookSettings")["LocalDevelopmentIps"]?.Split(',') ?? Array.Empty<string>();
-   
+        public string[] WhitelistedIps => _configuration.GetSection("WebhookSettings:WhitelistedIps").Get<string[]>() ?? Array.Empty<string>();
     }
 }
