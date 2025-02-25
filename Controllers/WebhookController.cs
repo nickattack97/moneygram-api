@@ -44,24 +44,17 @@ namespace moneygram_api.Controllers
         {
             try
             {
-                // Step 1: Validate IP Address (Whitelisting)
-                string clientIp = GetClientIp();
+                // Step 1: Validate IP Address
+                var clientIp = GetClientIp();
                 if (!_ipValidationService.IsIpWhitelisted(HttpContext))
                 {
-                    var errorResponse = new
-                    {
-                        Message = $"Unauthorized. IP not whitelisted.",
-                        ClientIp = clientIp,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    _logger.LogWarning($"Unauthorized access attempt from IP: {clientIp}");
-                    return StatusCode((int)HttpStatusCode.Forbidden, errorResponse);
+                    _logger.LogWarning("Unauthorized access attempt from IP: {ClientIp}", clientIp);
+                    return StatusCode((int)HttpStatusCode.Forbidden, new { Message = "IP not whitelisted", ClientIp = clientIp });
                 }
 
                 // Step 2: Read and parse the request body
-                using var reader = new StreamReader(Request.Body, Encoding.UTF8);
-                var requestBody = await reader.ReadToEndAsync();
-                _logger.LogInformation($"Received Webhook Payload: {requestBody}");
+                var requestBody = await new StreamReader(Request.Body).ReadToEndAsync();
+                _logger.LogInformation("Received Webhook Payload: {RequestBody}", requestBody);
 
                 // Step 3: Validate the signature
                 if (!Request.Headers.ContainsKey("Signature"))
@@ -85,40 +78,31 @@ namespace moneygram_api.Controllers
                 if (payload == null)
                 {
                     _logger.LogWarning("Invalid Payload");
-                    return BadRequest("Invalid Payload");
+
+                    var errorResponse = new
+                    {
+                        ErrorCode = "INVALID_SIGNATURE",
+                        ErrorMessage = "The provided signature is invalid",
+                        Details = new
+                        {
+                            ReceivedSignature = signatureHeader,
+                            ExpectedFormat = "t=<timestamp>,s=<base64_signature>",
+                        },
+                        TimeStamp = DateTime.UtcNow
+                    };
+                    return BadRequest(errorResponse);
                 }
 
-                // Step 5: Process the event
+                // Step 5: Process the event asynchronously
                 await ProcessTransactionStatusEvent(payload);
 
                 // Step 6: Return success response
-                return Ok("Event Processed");
-            }
-            catch (JsonException ex)
-            {
-                var clientIp = GetClientIp();
-                var errorResponse = new
-                {
-                    ErrorCode = "INVALID_JSON",
-                    ErrorMessage = "Invalid JSON payload",
-                    OffendingField = "requestBody",
-                    TimeStamp = DateTime.UtcNow
-                };
-                await LogExceptionAsync(ex, "WebhookController.HandleTransactionStatusEvent", clientIp);
-                return StatusCode((int)HttpStatusCode.BadRequest, errorResponse);
+                return Ok();
             }
             catch (Exception ex)
             {
-                var clientIp = GetClientIp();
-                var errorResponse = new
-                {
-                    ErrorCode = "INTERNAL_ERROR",
-                    ErrorMessage = "Internal Server Error",
-                    OffendingField = "",
-                    TimeStamp = DateTime.UtcNow
-                };
-                await LogExceptionAsync(ex, "WebhookController.HandleTransactionStatusEvent", clientIp);
-                return StatusCode((int)HttpStatusCode.InternalServerError, errorResponse);
+                await LogExceptionAsync(ex, "WebhookController.HandleTransactionStatusEvent", GetClientIp());
+                return StatusCode((int)HttpStatusCode.InternalServerError, new { ErrorCode = "INTERNAL_ERROR", ErrorMessage = "Internal Server Error" });
             }
         }
 

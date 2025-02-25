@@ -48,9 +48,14 @@ namespace moneygram_api.Services.Implementations
                 ?? context.Connection.RemoteIpAddress?.ToString()
                 ?? "unknown";
         }
-
         private bool IsIpMatch(string ipAddress, string whitelist)
         {
+            if (whitelist.Contains('/'))
+            {
+                var ipNetwork = IPNetwork.Parse(whitelist);
+                var clientIp = IPAddress.Parse(ipAddress);
+                return ipNetwork.Contains(clientIp);
+            }
             return ipAddress.Equals(whitelist, StringComparison.OrdinalIgnoreCase);
         }
     }
