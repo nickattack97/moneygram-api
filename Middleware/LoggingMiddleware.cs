@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using moneygram_api.Models;
+using System.Linq;
 
 namespace moneygram_api.Middleware
 {
@@ -25,7 +26,6 @@ namespace moneygram_api.Middleware
 
         public async Task Invoke(HttpContext context)
         {
-            // Log the incoming request details
             var requestLogId = await LogRequest(context);
 
             var originalBodyStream = context.Response.Body;
@@ -35,17 +35,13 @@ namespace moneygram_api.Middleware
 
                 try
                 {
-                    // Pass control to the next middleware
                     await _next(context);
-
-                    // Log the response details
                     await LogResponse(context, requestLogId);
                 }
                 catch (Exception ex)
                 {
-                    // Log the exception
                     await LogException(context, ex);
-                    throw; // Rethrow the exception to ensure the pipeline isn't interrupted
+                    throw;
                 }
                 finally
                 {
@@ -66,11 +62,12 @@ namespace moneygram_api.Middleware
                 using (var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true))
                 {
                     requestBody = await reader.ReadToEndAsync();
-                    request.Body.Position = 0; // Reset the stream position for further processing
+                    request.Body.Position = 0;
                 }
             }
 
             var username = context.Items["Username"]?.ToString() ?? "Anonymous";
+            var originIp = GetClientIp(context);
 
             var logDetails = new
             {
@@ -80,7 +77,7 @@ namespace moneygram_api.Middleware
                 Headers = request.Headers,
                 Body = requestBody,
                 Device = request.Headers["User-Agent"],
-                Origin = context.Connection.RemoteIpAddress?.ToString(),
+                Origin = originIp,
                 RequestTime = DateTime.Now
             };
 
@@ -98,12 +95,12 @@ namespace moneygram_api.Middleware
                     Headers = request.Headers.ToString(),
                     RequestBody = requestBody,
                     Device = request.Headers["User-Agent"],
-                    Origin = context.Connection.RemoteIpAddress?.ToString(),
+                    Origin = originIp,
                     RequestTime = DateTime.Now
                 };
 
                 await loggingService.LogRequestAsync(requestLog);
-                return requestLog.Id; // Return the ID of the logged request
+                return requestLog.Id;
             }
         }
 
@@ -114,6 +111,7 @@ namespace moneygram_api.Middleware
             context.Response.Body.Seek(0, SeekOrigin.Begin);
 
             var username = context.Items["Username"]?.ToString() ?? "Anonymous";
+            var originIp = GetClientIp(context);
 
             var logDetails = new
             {
@@ -123,7 +121,7 @@ namespace moneygram_api.Middleware
                 StatusCode = context.Response.StatusCode,
                 ResponseBody = responseBody,
                 Device = context.Request.Headers["User-Agent"],
-                Origin = context.Connection.RemoteIpAddress?.ToString(),
+                Origin = originIp,
                 ResponseTime = DateTime.Now
             };
 
@@ -136,7 +134,7 @@ namespace moneygram_api.Middleware
                 var requestLog = await loggingService.GetRequestLogByIdAsync(requestLogId);
                 if (requestLog != null)
                 {
-                    requestLog.ResponseBody = responseBody ?? string.Empty; // Ensure non-null value
+                    requestLog.ResponseBody = responseBody ?? string.Empty;
                     requestLog.StatusCode = context.Response.StatusCode;
                     requestLog.ResponseTime = DateTime.Now;
 
@@ -148,6 +146,7 @@ namespace moneygram_api.Middleware
         private async Task LogException(HttpContext context, Exception ex)
         {
             var username = context.Items["Username"]?.ToString() ?? "Anonymous";
+            var originIp = GetClientIp(context);
 
             var logDetails = new
             {
@@ -157,7 +156,7 @@ namespace moneygram_api.Middleware
                 StackTrace = ex.StackTrace,
                 HttpMethod = context.Request.Method,
                 Url = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}",
-                Origin = context.Connection.RemoteIpAddress?.ToString(),
+                Origin = originIp,
                 Timestamp = DateTime.Now
             };
 
@@ -175,12 +174,20 @@ namespace moneygram_api.Middleware
                     StackTrace = ex.StackTrace,
                     HttpMethod = context.Request.Method,
                     Url = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}",
-                    Origin = context.Connection.RemoteIpAddress?.ToString(),
+                    Origin = originIp,
                     Timestamp = DateTime.Now
                 };
 
                 await loggingService.LogExceptionAsync(exceptionLog);
             }
+        }
+
+        private string GetClientIp(HttpContext context)
+        {
+            return context.Request.Headers["X-Forwarded-For"].FirstOrDefault()
+                ?? context.Request.Headers["X-Real-IP"].FirstOrDefault()
+                ?? context.Connection.RemoteIpAddress?.ToString()
+                ?? "unknown";
         }
     }
 }
