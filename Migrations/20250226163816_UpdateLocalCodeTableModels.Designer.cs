@@ -12,8 +12,8 @@ using moneygram_api.Data;
 namespace moneygram_api.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250124125123_CreateSendTransactionsTable")]
-    partial class CreateSendTransactionsTable
+    [Migration("20250226163816_UpdateLocalCodeTableModels")]
+    partial class UpdateLocalCodeTableModels
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,176 @@ namespace moneygram_api.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("moneygram_api.Models.CodeTable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgentManaged")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BaseCurrency")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BaseCurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeliveryOption")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IndicativeRateAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LocalCurrency")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LocalCurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MgManaged")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveAgentAbbreviation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveAgentID")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveCurrency")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveCurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StateProvinceCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StateProvinceName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CodeTables", (string)null);
+                });
+
+            modelBuilder.Entity("moneygram_api.Models.CountryInfoEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BaseReceiveCurrency")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryLegacyCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("DirectedSendCountry")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Emoji")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsZipCodeRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("MgDirectedSendCountry")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneLength")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ReceiveActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SendActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CountriesInfo", (string)null);
+                });
+
+            modelBuilder.Entity("moneygram_api.Models.CurrencyInfoEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CurrencyName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CurrencyPrecision")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CurrencyInfo", (string)null);
+                });
 
             modelBuilder.Entity("moneygram_api.Models.ExceptionLog", b =>
                 {
@@ -133,19 +303,13 @@ namespace moneygram_api.Migrations
                     b.Property<DateTime?>("AddDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<decimal?>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<decimal?>("Charge")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("Checker")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CommitDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool?>("Commited")
+                    b.Property<bool?>("Committed")
                         .HasColumnType("bit");
 
                     b.Property<string>("ConsumerID")
@@ -153,6 +317,9 @@ namespace moneygram_api.Migrations
 
                     b.Property<string>("District")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("ExchangeRate")
+                        .HasColumnType("decimal(18,4)");
 
                     b.Property<bool?>("FormFree")
                         .HasColumnType("bit");
@@ -168,6 +335,9 @@ namespace moneygram_api.Migrations
 
                     b.Property<bool?>("Processed")
                         .HasColumnType("bit");
+
+                    b.Property<decimal?>("ReceiveAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ReceiveCurrency")
                         .HasColumnType("nvarchar(max)");
@@ -234,6 +404,9 @@ namespace moneygram_api.Migrations
 
                     b.Property<string>("ReferenceNumber")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("SendAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("SendCurrency")
                         .HasColumnType("nvarchar(max)");
@@ -312,6 +485,9 @@ namespace moneygram_api.Migrations
 
                     b.Property<string>("TellerId")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal?>("TotalAmountCollected")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("TransactionPurpose")
                         .HasColumnType("nvarchar(max)");

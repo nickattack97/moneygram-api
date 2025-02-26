@@ -408,3 +408,4 @@ ASALocalRun/
 # Local History for Visual Studio
 .localhistory/
 Media/generate-test-signature.sh
+Media/gen-keys-signature.md

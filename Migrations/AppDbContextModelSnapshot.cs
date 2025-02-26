@@ -22,6 +22,159 @@ namespace moneygram_api.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("moneygram_api.Models.CodeTable", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AgentManaged")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BaseCurrency")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BaseCurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DeliveryOption")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IndicativeRateAvailable")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LocalCurrency")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LocalCurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MgManaged")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveAgentAbbreviation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveAgentID")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveCurrency")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReceiveCurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StateProvinceCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("StateProvinceName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CodeTables", (string)null);
+                });
+
+            modelBuilder.Entity("moneygram_api.Models.CountryInfoEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BaseReceiveCurrency")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryLegacyCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CountryName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("DirectedSendCountry")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Emoji")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Image")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsZipCodeRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("MgDirectedSendCountry")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PhoneLength")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ReceiveActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("SendActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CountriesInfo", (string)null);
+                });
+
+            modelBuilder.Entity("moneygram_api.Models.CurrencyInfoEntity", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CurrencyCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CurrencyName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("CurrencyPrecision")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CurrencyInfo", (string)null);
+                });
+
             modelBuilder.Entity("moneygram_api.Models.ExceptionLog", b =>
                 {
                     b.Property<int>("Id")
