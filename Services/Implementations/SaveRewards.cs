@@ -53,14 +53,11 @@ namespace moneygram_api.Services.Implementations
                         ConsumerCity = request.ConsumerCity,
                         ConsumerCountry = request.ConsumerCountry,
                         ConsumerHomePhone = request.ConsumerHomePhone,
-                        ConsumerMobilePhone = request.ConsumerMobilePhone,
                         ConsumerDOB = request.ConsumerDOB,
-                        Gender = request.Gender,
-                        MarketingOptIn = request.MarketingOptIn,
-                        MarketingBySMS = request.MarketingBySMS,
+                        Gender = request.Gender == "MALE" ? "M" : "F",
+                        MarketingOptIn = true,
+                        MarketingBySMS = true,
                         MarketingLanguage = "EN",
-                        ConsentOfPersonalInformationThirdParty = request.ConsentOfPersonalInformationThirdParty,
-                        AgentAcknowledgement = request.AgentAcknowledgement
                     }
                 }
             };

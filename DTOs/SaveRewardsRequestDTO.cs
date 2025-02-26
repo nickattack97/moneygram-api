@@ -9,12 +9,7 @@ namespace moneygram_api.DTOs
         public string ConsumerCity { get; set; }
         public string ConsumerCountry { get; set; }
         public string ConsumerHomePhone { get; set; }
-        public string ConsumerMobilePhone { get; set; }
         public DateTime ConsumerDOB { get; set; }
         public string Gender { get; set; }
-        public bool MarketingOptIn { get; set; }
-        public bool MarketingBySMS { get; set; }
-        public bool ConsentOfPersonalInformationThirdParty { get; set; }
-        public bool AgentAcknowledgement { get; set; }
     }
 }

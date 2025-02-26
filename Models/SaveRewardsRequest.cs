@@ -63,9 +63,6 @@ namespace moneygram_api.Models.SaveRewardsRequest
         [XmlElement(ElementName = "consumerHomePhone", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
         public string ConsumerHomePhone { get; set; }
 
-        [XmlElement(ElementName = "consumerMobilePhone", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
-        public string ConsumerMobilePhone { get; set; }
-
         [XmlIgnore]
         public DateTime ConsumerDOB { get; set; }
 
@@ -87,11 +84,5 @@ namespace moneygram_api.Models.SaveRewardsRequest
 
         [XmlElement(ElementName = "marketingLanguage", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
         public string MarketingLanguage { get; set; }
-
-        [XmlElement(ElementName = "consentOfPersonalInformationThirdParty", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-        public bool ConsentOfPersonalInformationThirdParty { get; set; }
-
-        [XmlElement(ElementName = "agentAcknowledgement", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-        public bool AgentAcknowledgement { get; set; }
     }
 }

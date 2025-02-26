@@ -28,9 +28,6 @@ namespace moneygram_api.Models.SaveRewardsResponse
         [XmlElement(ElementName = "flags", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public int Flags { get; set; }
 
-        [XmlElement(ElementName = "version", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-        public string Version { get; set; }
-
         [XmlElement(ElementName = "freqCustCardNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string FreqCustCardNumber { get; set; }
     }
