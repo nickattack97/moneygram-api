@@ -71,6 +71,9 @@ public class SenderInfo
     [XmlElement(ElementName = "senderHomePhone", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderHomePhone { get; set; }
 
+    [XmlElement(ElementName = "freqCustCardNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string FreqCustCardNumber { get; set; }
+
     [XmlElement(ElementName = "consumerId", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public int ConsumerId { get; set; }
 
