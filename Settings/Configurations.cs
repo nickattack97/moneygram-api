@@ -17,6 +17,7 @@ namespace moneygram_api.Settings
         string JwtAudience { get; }
         string PublicKey { get; }
         string[] WhitelistedIps { get; }
+        int UpdateFrequencyInDays { get; }
     }
 
     public class Configurations : IConfigurations
@@ -40,5 +41,6 @@ namespace moneygram_api.Settings
         public string JwtAudience => _configuration.GetSection("JwtSettings")["Audience"] ?? string.Empty;
         public string PublicKey => _configuration.GetSection("WebhookSettings")["PublicKey"] ?? string.Empty;
         public string[] WhitelistedIps => _configuration.GetSection("WebhookSettings:WhitelistedIps").Get<string[]>() ?? Array.Empty<string>();
+        public int UpdateFrequencyInDays => int.TryParse(_configuration.GetSection("AppSettings")["UpdateFrequencyInDays"], out var result) ? result : 14; // Default is 14 days
     }
 }
