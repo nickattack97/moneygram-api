@@ -1,18 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using moneygram_api.Models.ConsumerLookUpRequest;
-using moneygram_api.Models.ConsumerLookUpResponse;
-using moneygram_api.Models.SendValidationRequest;
-using moneygram_api.Models.SendValidationResponse;
-using moneygram_api.Models.CommitTransactionRequest;
-using moneygram_api.Models.CommitTransactionResponse;
 using moneygram_api.Services.Interfaces;
 using moneygram_api.DTOs;
-using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
-using System.Threading.Tasks;
 using moneygram_api.Models;
-using moneygram_api.Utilities;
+using moneygram_api.Exceptions;
+using System.Threading.Tasks;
 
 namespace moneygram_api.Controllers
 {
@@ -22,23 +15,20 @@ namespace moneygram_api.Controllers
     public class SendsController : ControllerBase
     {
         private readonly ISendConsumerLookUp _sendConsumerLookUp;
-        private readonly IFetchCodeTable _fetchCodeTable;
         private readonly IFeeLookUp _feeLookUp;
         private readonly IGFFP _gffp;
         private readonly ISendValidation _sendValidation;
         private readonly ICommitTransaction _commitTransaction;
-        private readonly IGetCountryInfo _fetchCountryInfo;
-        private readonly IFetchCurrencyInfo _fetchCurrencyInfo;
         private readonly ICustomerLookupService _customerLookupService;
         private readonly IMGSendTransactionService _sendTransactionService;
         private readonly ISaveRewards _saveRewards;
-        private readonly ILoggingService _loggingService; 
+        private readonly ILoggingService _loggingService;
+        private readonly ILocalCodeTableService _localCodeTableService;
+        private readonly ILocalCountryInfoService _localCountryInfoService;
+        private readonly ILocalCurrencyInfoService _localCurrencyInfoService;
 
         public SendsController(
             ISendConsumerLookUp sendConsumerLookUp,
-            IFetchCodeTable fetchCodeTable,
-            IGetCountryInfo fetchCountryInfo,
-            IFetchCurrencyInfo fetchCurrencyInfo,
             IFeeLookUp feeLookUp,
             IGFFP gffp,
             ISendValidation sendValidation,
@@ -46,14 +36,13 @@ namespace moneygram_api.Controllers
             ICustomerLookupService customerLookupService,
             IMGSendTransactionService sendTransactionService,
             ILoggingService loggingService,
-            ISaveRewards saveRewards
-        )
+            ISaveRewards saveRewards,
+            ILocalCodeTableService localCodeTableService,
+            ILocalCountryInfoService localCountryInfoService,
+            ILocalCurrencyInfoService localCurrencyInfoService)
         {
             _sendConsumerLookUp = sendConsumerLookUp;
-            _fetchCodeTable = fetchCodeTable;
             _feeLookUp = feeLookUp;
-            _fetchCountryInfo = fetchCountryInfo;
-            _fetchCurrencyInfo = fetchCurrencyInfo;
             _gffp = gffp;
             _sendValidation = sendValidation;
             _commitTransaction = commitTransaction;
@@ -61,6 +50,9 @@ namespace moneygram_api.Controllers
             _sendTransactionService = sendTransactionService;
             _loggingService = loggingService;
             _saveRewards = saveRewards;
+            _localCodeTableService = localCodeTableService;
+            _localCountryInfoService = localCountryInfoService;
+            _localCurrencyInfoService = localCurrencyInfoService;
         }
 
         [HttpPost("consumer-lookup")]
@@ -70,10 +62,9 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "consumerLookUpRequest"));
             }
-
             return await HandleRequestAsync(() => _sendConsumerLookUp.Push(request), "SendsController.ConsumerLookUp");
         }
-        
+
         [HttpGet("customer-lookup/{nationalID}")]
         public async Task<IActionResult> CustomerLookup(string nationalID)
         {
@@ -81,7 +72,6 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "nationalID"));
             }
-
             return await HandleRequestAsync(() => _customerLookupService.GetCustomerByNationalIDAsync(nationalID), "SendsController.CustomerLookup");
         }
 
@@ -92,9 +82,9 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "codeTableRequest"));
             }
-
-            return await HandleRequestAsync(() => _fetchCodeTable.Fetch(request), "SendsController.CodeTable");
+            return await HandleRequestAsync(() => _localCodeTableService.GetCodeTableAsync(request), "SendsController.CodeTable");
         }
+
         [HttpPost("filtered-code-table")]
         public async Task<IActionResult> FilteredCodeTable([FromBody] FilteredCodeTableRequestDTO request)
         {
@@ -102,19 +92,19 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "filteredCodeTableRequest"));
             }
-
-            return await HandleRequestAsync(() => _fetchCodeTable.FetchFilteredCodeTable(request), "SendsController.FilteredCodeTable");
+            return await HandleRequestAsync(() => _localCodeTableService.GetFilteredCodeTableAsync(request), "SendsController.FilteredCodeTable");
         }
+
         [HttpGet("country-info")]
         public async Task<IActionResult> CountryInfo([FromQuery] string? countryCode = null)
         {
-            return await HandleRequestAsync(() => _fetchCountryInfo.Fetch(countryCode), "SendsController.CountryInfo");
+            return await HandleRequestAsync(() => _localCountryInfoService.GetCountryInfoAsync(countryCode), "SendsController.CountryInfo");
         }
 
         [HttpGet("currency-info")]
         public async Task<IActionResult> CurrencyInfo()
         {
-            return await HandleRequestAsync(() => _fetchCurrencyInfo.Fetch(), "CurrencyInfo");
+            return await HandleRequestAsync(() => _localCurrencyInfoService.GetCurrencyInfoAsync(), "SendsController.CurrencyInfo");
         }
 
         [HttpGet("filtered-currency-info/{currencyCode}")]
@@ -124,8 +114,7 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "currencyCode"));
             }
-
-            return await HandleRequestAsync(() => _fetchCurrencyInfo.FetchByCurrencyCode(currencyCode), "FilteredCurrencyInfo");
+            return await HandleRequestAsync(() => _localCurrencyInfoService.GetFilteredCurrencyInfoAsync(currencyCode), "SendsController.FilteredCurrencyInfo");
         }
 
         [HttpPost("fee-lookup")]
@@ -135,9 +124,9 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "feeLookupRequest"));
             }
-
             return await HandleRequestAsync(() => _feeLookUp.FetchFeeLookUp(request), "FeeLookUp");
         }
+
         [HttpPost("filtered-fee-lookup")]
         public async Task<IActionResult> FilteredFeeLookUp([FromBody] FeeLookUpRequestDTO request)
         {
@@ -145,9 +134,9 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "feeLookupRequest"));
             }
-
             return await HandleRequestAsync(() => _feeLookUp.FetchFilteredFeeLookUp(request), "SendsController.FilteredFeeLookUp");
         }
+
         [HttpPost("gffp")]
         public async Task<IActionResult> GetFieldsForProduct([FromBody] GFFPRequestDTO request)
         {
@@ -155,7 +144,6 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest("Request is null");
             }
-
             return await HandleRequestAsync(() => _gffp.FetchFieldsForProduct(request), "SendsController.GFFP");
         }
 
@@ -166,9 +154,9 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest("Request is null");
             }
-
             return await HandleRequestAsync(() => _sendValidation.Push(request), "SendsController.SendValidation");
         }
+
         [HttpPost("commit-transaction")]
         public async Task<IActionResult> CommitTransaction([FromBody] CommitRequestDTO request)
         {
@@ -176,7 +164,6 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "commitTransactionRequest"));
             }
-
             return await HandleRequestAsync(() => _commitTransaction.Commit(request), "CommitTransaction");
         }
 
@@ -187,7 +174,6 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "logTransactionRequest"));
             }
-
             return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "LogTransaction");
         }
 
@@ -198,15 +184,15 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "saveRewardsRequest"));
             }
-
             return await HandleRequestAsync(() => _saveRewards.Save(request), "SaveRewards");
         }
 
         [HttpGet("get-send-transactions")]
         public async Task<IActionResult> GetSendTransactions()
-       {
+        {
             return await HandleRequestAsync(() => _sendTransactionService.GetSendTransactionsAsync(), "GetSendTransactions");
         }
+
         private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string actionName)
         {
             try
@@ -228,6 +214,7 @@ namespace moneygram_api.Controllers
             }
             catch (Exception ex)
             {
+                await LogExceptionAsync(ex, actionName);
                 if (ex.Message.Contains("Service Unavailable"))
                 {
                     var errorResponse = ErrorDictionary.GetErrorResponse(503, ex.Message, actionName);
@@ -241,7 +228,7 @@ namespace moneygram_api.Controllers
                     await LogExceptionAsync(ex, actionName);
                     return StatusCode(503, serviceUnavailableResponse);
                 }
-                else if (ex.Message.Contains("No fee information found for the provided filters"))
+                else if (ex.Message.Contains("No fee information found"))
                 {
                     var errorResponse = ErrorDictionary.GetErrorResponse(204, ex.Message, actionName);
                     var noFeeInfoResponse = new

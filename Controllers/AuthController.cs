@@ -11,11 +11,13 @@ namespace moneygram_api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-
-        public AuthController(IAuthService authService)
+        private readonly ITokenService _tokenService;
+        public AuthController(IAuthService authService, ITokenService tokenService)
         {
             _authService = authService;
+            _tokenService = tokenService;
         }
+        
 
         [HttpPost("login")]
         [AllowAnonymous]
@@ -33,8 +35,22 @@ namespace moneygram_api.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(ex.Message);
+                return Unauthorized(new { ex.Message });
             }
+        }
+
+        [HttpGet("validate-token")]
+        [Authorize]
+        public async Task<IActionResult> ValidateToken()
+        {
+            var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+            if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+            {
+                return BadRequest("No valid token provided");
+            }
+
+            var token = authHeader.Substring("Bearer ".Length);
+            return await _tokenService.ValidateTokenAsync(token);
         }
     }
 }

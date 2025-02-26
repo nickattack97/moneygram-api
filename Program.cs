@@ -1,5 +1,6 @@
 ﻿using moneygram_api.Services.Interfaces;
 using moneygram_api.Services.Implementations;
+using moneygram_api.Services.Background;
 using moneygram_api.Settings;
 using moneygram_api.Middleware;
 using moneygram_api.Data;
@@ -97,6 +98,21 @@ builder.Services.AddScoped<ISignatureVerificationService, SignatureVerificationS
 
 //Register the IpValidationService
 builder.Services.AddScoped<IIpValidationService, IpValidationService>();
+
+//Register the ITokenService
+builder.Services.AddScoped<ITokenService, TokenService>();
+
+// Register the ILocalCodeTableService
+builder.Services.AddScoped<ILocalCodeTableService, LocalCodeTableService>();
+
+// Register the ILocalCountryInfoService
+builder.Services.AddScoped<ILocalCountryInfoService, LocalCountryInfoService>();
+
+// Register the ILocalCurrencyInfoService
+builder.Services.AddScoped<ILocalCurrencyInfoService, LocalCurrencyInfoService>();
+
+// Register the DataSyncBackgroundService
+builder.Services.AddHostedService<DataSyncBackgroundService>();
 
 // Configure CORS
 builder.Services.AddCors(options =>
