@@ -9,8 +9,6 @@ using ResponseEnvelope = moneygram_api.Models.CommitTransactionResponse.Envelope
 using RequestBody = moneygram_api.Models.CommitTransactionRequest.Body;
 using moneygram_api.Models;
 using moneygram_api.DTOs;
-using RestSharp.Serializers;
-using System.Xml.Serialization;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
 
@@ -22,15 +20,19 @@ namespace moneygram_api.Services.Implementations
 
         public CommitTransaction(IConfigurations configurations)
         {
-            _configurations = configurations;
+            _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
         }
 
         public async Task<CommitTransactionResponse> Commit(CommitRequestDTO request)
         {
             var options = new RestClientOptions(_configurations.BaseUrl)
             {
-                MaxTimeout = -1,
+                MaxTimeout = 30000, // Adjusted to a reasonable timeout (30 seconds)
             };
+
+            // Apply proxy settings from configurations
+            ProxySettingsUtility.ApplyProxySettings(options, _configurations);
+
             var client = new RestClient(options);
             var restRequest = new RestRequest(_configurations.Resource, Method.Post);
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#commitTransaction");
@@ -50,14 +52,13 @@ namespace moneygram_api.Services.Implementations
                         ClientSoftwareVersion = _configurations.ClientSoftwareVer,
                         ChannelType = "LOCATION",
                         ProductType = "SEND",
-                        TimeStamp = DateTime.Now,
+                        TimeStamp = DateTime.UtcNow, // Use UTC for consistency
                         MgiTransactionSessionID = request.mgiTransactionSessionID
                     }
                 }
             };
 
             var body = envelope.ToString();
-
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -66,7 +67,12 @@ namespace moneygram_api.Services.Implementations
                 if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     var errorResponse = ErrorDictionary.GetErrorResponse(503);
-                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                    throw new BaseCustomException(
+                        errorResponse.ErrorCode,
+                        errorResponse.ErrorMessage,
+                        errorResponse.OffendingField,
+                        DateTime.UtcNow
+                    );
                 }
                 return res;
             });
@@ -75,7 +81,12 @@ namespace moneygram_api.Services.Implementations
             {
                 if (string.IsNullOrEmpty(response.Content))
                 {
-                    throw new Exception("Response content is null or empty");
+                    throw new BaseCustomException(
+                        500,
+                        "Response content is null or empty",
+                        "responseContent",
+                        DateTime.UtcNow
+                    );
                 }
 
                 var responseEnvelope = ResponseEnvelope.Deserialize<ResponseEnvelope>(response.Content);
@@ -90,17 +101,36 @@ namespace moneygram_api.Services.Implementations
                 }
                 else
                 {
-                    throw new Exception("Response content is null");
+                    throw new BaseCustomException(
+                        500,
+                        "Response content is null",
+                        "responseContent",
+                        DateTime.UtcNow
+                    );
                 }
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
                 var errorResponse = ErrorDictionary.GetErrorResponse(503);
-                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                throw new BaseCustomException(
+                    errorResponse.ErrorCode,
+                    errorResponse.ErrorMessage,
+                    errorResponse.OffendingField,
+                    DateTime.UtcNow
+                );
             }
             else
             {
-                throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
+                var errorResponse = ErrorDictionary.GetErrorResponse(
+                    (int)response.StatusCode,
+                    response.Content ?? $"Request failed with status code {response.StatusCode}"
+                );
+                throw new BaseCustomException(
+                    errorResponse.ErrorCode,
+                    errorResponse.ErrorMessage,
+                    errorResponse.OffendingField,
+                    DateTime.UtcNow
+                );
             }
         }
     }
