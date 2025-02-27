@@ -124,7 +124,7 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "feeLookupRequest"));
             }
-            return await HandleRequestAsync(() => _feeLookUp.FetchFeeLookUp(request), "FeeLookUp");
+            return await HandleRequestAsync(() => _feeLookUp.FetchFeeLookUp(request), "SendsController.FeeLookUp");
         }
 
         [HttpPost("filtered-fee-lookup")]
@@ -142,7 +142,7 @@ namespace moneygram_api.Controllers
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "gffpRequest"));
             }
             return await HandleRequestAsync(() => _gffp.FetchFieldsForProduct(request), "SendsController.GFFP");
         }
@@ -152,7 +152,7 @@ namespace moneygram_api.Controllers
         {
             if (request == null)
             {
-                return BadRequest("Request is null");
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "sendValidationRequest"));
             }
             return await HandleRequestAsync(() => _sendValidation.Push(request), "SendsController.SendValidation");
         }
@@ -164,7 +164,7 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "commitTransactionRequest"));
             }
-            return await HandleRequestAsync(() => _commitTransaction.Commit(request), "CommitTransaction");
+            return await HandleRequestAsync(() => _commitTransaction.Commit(request), "SendsController.CommitTransaction");
         }
 
         [HttpPost("log-transaction")]
@@ -174,7 +174,7 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "logTransactionRequest"));
             }
-            return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "LogTransaction");
+            return await HandleRequestAsync(() => _sendTransactionService.LogTransactionAsync(transaction), "SendsController.LogTransaction");
         }
 
         [HttpPost("save-rewards")]
@@ -184,13 +184,13 @@ namespace moneygram_api.Controllers
             {
                 return BadRequest(ErrorDictionary.GetErrorResponse(400, "saveRewardsRequest"));
             }
-            return await HandleRequestAsync(() => _saveRewards.Save(request), "SaveRewards");
+            return await HandleRequestAsync(() => _saveRewards.Save(request), "SendsController.SaveRewards");
         }
 
         [HttpGet("get-send-transactions")]
         public async Task<IActionResult> GetSendTransactions()
         {
-            return await HandleRequestAsync(() => _sendTransactionService.GetSendTransactionsAsync(), "GetSendTransactions");
+            return await HandleRequestAsync(() => _sendTransactionService.GetSendTransactionsAsync(), "SendsController.GetSendTransactions");
         }
 
         private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string actionName)
@@ -204,56 +204,45 @@ namespace moneygram_api.Controllers
             {
                 var soapFaultResponse = new
                 {
-                    ex.ErrorCode,
-                    ex.ErrorMessage,
-                    ex.OffendingField,
-                    ex.TimeStamp
+                    errorCode = ex.ErrorCode,
+                    errorMessage = ex.ErrorMessage,
+                    offendingField = ex.OffendingField,
+                    timeStamp = ex.TimeStamp.ToString("o")
                 };
                 await LogExceptionAsync(ex, actionName);
                 return StatusCode(500, soapFaultResponse);
             }
+            catch (BaseCustomException ex)
+            {
+                var errorResponse = new
+                {
+                    errorCode = ex.ErrorCode,
+                    errorMessage = ex.ErrorMessage,
+                    offendingField = actionName, // Use actionName as the offending field context
+                    timeStamp = ex.TimeStamp.ToString("o")
+                };
+                await LogExceptionAsync(ex, actionName);
+                return StatusCode(ex.ErrorCode switch
+                {
+                    400 => 400,
+                    401 => 401,
+                    404 => 404,
+                    503 => 503,
+                    _ => 500
+                }, errorResponse);
+            }
             catch (Exception ex)
             {
+                var errorResponse = ErrorDictionary.GetErrorResponse(500, ex.Message, actionName);
+                var genericException = new
+                {
+                    errorCode = errorResponse.ErrorCode,
+                    errorMessage = errorResponse.ErrorMessage,
+                    offendingField = errorResponse.OffendingField,
+                    timeStamp = DateTime.UtcNow.ToString("o")
+                };
                 await LogExceptionAsync(ex, actionName);
-                if (ex.Message.Contains("Service Unavailable"))
-                {
-                    var errorResponse = ErrorDictionary.GetErrorResponse(503, ex.Message, actionName);
-                    var serviceUnavailableResponse = new
-                    {
-                        errorResponse.ErrorCode,
-                        errorResponse.ErrorMessage,
-                        errorResponse.OffendingField,
-                        TimeStamp = DateTime.Now
-                    };
-                    await LogExceptionAsync(ex, actionName);
-                    return StatusCode(503, serviceUnavailableResponse);
-                }
-                else if (ex.Message.Contains("No fee information found"))
-                {
-                    var errorResponse = ErrorDictionary.GetErrorResponse(204, ex.Message, actionName);
-                    var noFeeInfoResponse = new
-                    {
-                        errorResponse.ErrorCode,
-                        errorResponse.ErrorMessage,
-                        errorResponse.OffendingField,
-                        TimeStamp = DateTime.Now
-                    };
-                    await LogExceptionAsync(ex, actionName);
-                    return StatusCode(404, noFeeInfoResponse);
-                }
-                else
-                {
-                    var errorResponse = ErrorDictionary.GetErrorResponse(500, ex.Message, actionName);
-                    var genericException = new
-                    {
-                        errorResponse.ErrorCode,
-                        errorResponse.ErrorMessage,
-                        errorResponse.OffendingField,
-                        TimeStamp = DateTime.UtcNow
-                    };
-                    await LogExceptionAsync(ex, actionName);
-                    return StatusCode(500, genericException);
-                }
+                return StatusCode(500, genericException);
             }
         }
 
@@ -268,7 +257,7 @@ namespace moneygram_api.Controllers
                 HttpMethod = HttpContext.Request.Method,
                 Url = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}{HttpContext.Request.Path}{HttpContext.Request.QueryString}",
                 Origin = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                Timestamp = DateTime.Now
+                Timestamp = DateTime.UtcNow // Use UTC for consistency
             };
 
             await _loggingService.LogExceptionAsync(exceptionLog);
