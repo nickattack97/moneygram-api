@@ -7,6 +7,8 @@ namespace moneygram_api.Settings
     {
         string BaseUrl { get; }
         string Resource { get; }
+        string AuthBaseUrl { get; }
+        string AuthResource { get; }
         string AgentId { get; }
         string Token { get; }
         int Sequence { get; }
@@ -18,6 +20,11 @@ namespace moneygram_api.Settings
         string PublicKey { get; }
         string[] WhitelistedIps { get; }
         int UpdateFrequencyInDays { get; }
+        bool UseProxy { get; }          
+        string ProxyAddress { get; }    
+        int ProxyPort { get; }           
+        string ProxyUsername { get; }    
+        string ProxyPassword { get; } 
     }
 
     public class Configurations : IConfigurations
@@ -30,6 +37,8 @@ namespace moneygram_api.Settings
         }
 
         public string BaseUrl => _configuration.GetSection("AppSettings")["BaseUrl"] ?? string.Empty;
+        public string AuthBaseUrl => _configuration.GetSection("UserConnectSettings")["BaseUrl"] ?? string.Empty;
+        public string AuthResource => _configuration.GetSection("UserConnectSettings")["Resource"] ?? string.Empty;
         public string Resource => _configuration.GetSection("AppSettings")["Resource"] ?? string.Empty;
         public string AgentId => _configuration.GetSection("AppSettings")["AgentId"] ?? string.Empty;
         public string Token => _configuration.GetSection("AppSettings")["Token"] ?? string.Empty;
@@ -42,5 +51,10 @@ namespace moneygram_api.Settings
         public string PublicKey => _configuration.GetSection("WebhookSettings")["PublicKey"] ?? string.Empty;
         public string[] WhitelistedIps => _configuration.GetSection("WebhookSettings:WhitelistedIps").Get<string[]>() ?? Array.Empty<string>();
         public int UpdateFrequencyInDays => int.TryParse(_configuration.GetSection("AppSettings")["UpdateFrequencyInDays"], out var result) ? result : 14; // Default is 14 days
+        public bool UseProxy => bool.TryParse(_configuration.GetSection("ProxySettings")["UseProxy"], out var result) && result;
+        public string ProxyAddress => _configuration.GetSection("ProxySettings")["ProxyAddress"] ?? string.Empty;
+        public string ProxyUsername => _configuration.GetSection("ProxySettings")["ProxyUsername"] ?? string.Empty;
+        public string ProxyPassword => _configuration.GetSection("ProxySettings")["ProxyPassword"] ?? string.Empty;
+        public int ProxyPort => int.TryParse(_configuration.GetSection("ProxySettings")["ProxyPort"], out var result) ? result : 0;
     }
 }
