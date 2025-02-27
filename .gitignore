@@ -409,3 +409,4 @@ ASALocalRun/
 .localhistory/
 Media/generate-test-signature.sh
 Media/gen-keys-signature.md
+Media/bearer_token.txt
