@@ -4,7 +4,6 @@ using moneygram_api.Services.Interfaces;
 using moneygram_api.Settings;
 using moneygram_api.DTOs;
 using RestSharp;
-using System;
 using System.Threading.Tasks;
 using RequestEnvelope = moneygram_api.Models.CodeTableRequest.Envelope;
 using RequestBody = moneygram_api.Models.CodeTableRequest.Body;
@@ -21,16 +20,23 @@ namespace moneygram_api.Services.Implementations
 
         public FetchCodeTable(IConfigurations configurations, IFetchCurrencyInfo fetchCurrencyInfo)
         {
-            _configurations = configurations;
-            _fetchCurrencyInfo = fetchCurrencyInfo;
+            _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
+            _fetchCurrencyInfo = fetchCurrencyInfo ?? throw new ArgumentNullException(nameof(fetchCurrencyInfo));
         }
 
         public async Task<CodeTableResponse> Fetch(CodeTableRequestDTO request)
         {
+            if (request == null)
+            {
+                throw new BaseCustomException(400, "Request cannot be null.", nameof(request), DateTime.UtcNow);
+            }
+
             var options = new RestClientOptions(_configurations.BaseUrl)
             {
-                MaxTimeout = -1,
+                MaxTimeout = 30000,
             };
+            ProxySettingsUtility.ApplyProxySettings(options, _configurations);
+
             var client = new RestClient(options);
             var restRequest = new RestRequest(_configurations.Resource, Method.Post);
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#codeTableRequest");
@@ -45,7 +51,7 @@ namespace moneygram_api.Services.Implementations
                         AgentID = _configurations.AgentId,
                         Token = _configurations.Token,
                         AgentSequence = _configurations.Sequence,
-                        TimeStamp = DateTime.Now,
+                        TimeStamp = DateTime.UtcNow,
                         ApiVersion = _configurations.ApiVersion,
                         ClientSoftwareVersion = _configurations.ClientSoftwareVer,
                         ChannelType = "LOCATION",
@@ -55,7 +61,6 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
-
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -64,7 +69,12 @@ namespace moneygram_api.Services.Implementations
                 if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     var errorResponse = ErrorDictionary.GetErrorResponse(503);
-                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                    throw new BaseCustomException(
+                        errorResponse.ErrorCode,
+                        errorResponse.ErrorMessage,
+                        errorResponse.OffendingField,
+                        DateTime.UtcNow
+                    );
                 }
                 return res;
             });
@@ -73,7 +83,7 @@ namespace moneygram_api.Services.Implementations
             {
                 if (string.IsNullOrEmpty(response.Content))
                 {
-                    throw new Exception("Response content is null or empty");
+                    throw new BaseCustomException(500, "Response content is null or empty.", "responseContent", DateTime.UtcNow);
                 }
 
                 var responseEnvelope = ResponseEnvelope.Deserialize<ResponseEnvelope>(response.Content);
@@ -88,32 +98,43 @@ namespace moneygram_api.Services.Implementations
                 }
                 else
                 {
-                    throw new Exception("Response content is null");
+                    throw new BaseCustomException(500, "Response content is null.", "responseContent", DateTime.UtcNow);
                 }
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
                 var errorResponse = ErrorDictionary.GetErrorResponse(503);
-                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                throw new BaseCustomException(
+                    errorResponse.ErrorCode,
+                    errorResponse.ErrorMessage,
+                    errorResponse.OffendingField,
+                    DateTime.UtcNow
+                );
             }
             else
             {
-                throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
+                var errorResponse = ErrorDictionary.GetErrorResponse(
+                    (int)response.StatusCode,
+                    response.Content ?? $"Request failed with status code {response.StatusCode}"
+                );
+                throw new BaseCustomException(
+                    errorResponse.ErrorCode,
+                    errorResponse.ErrorMessage,
+                    errorResponse.OffendingField,
+                    DateTime.UtcNow
+                );
             }
         }
 
         public async Task<CodeTableResponse> FetchFilteredCodeTable(FilteredCodeTableRequestDTO filters)
         {
             var request = new CodeTableRequestDTO { AgentAllowedOnly = filters.AgentAllowedOnly };
-
             var codeTableResponse = await Fetch(request);
 
-            // Filter the CountryCurrencyInfo list based on the provided countryCode and deliveryOption.
             var filteredCountryCurrencyInfo = codeTableResponse.CountryCurrencyInfo
-                .Where(cci => cci.CountryCode == filters.CountryCode /*&& cci.DeliveryOption == filters.DeliveryOption*/)
+                .Where(cci => cci.CountryCode == filters.CountryCode)
                 .ToList();
 
-            // Optimize: Fetch all currency info concurrently.
             var tasks = filteredCountryCurrencyInfo.Select(async currencyInfo =>
             {
                 var receiveCurrencyInfo = await _fetchCurrencyInfo.FetchByCurrencyCode(currencyInfo.ReceiveCurrency);
@@ -122,7 +143,6 @@ namespace moneygram_api.Services.Implementations
 
             await Task.WhenAll(tasks);
 
-            // Create a new CodeTableResponse with the filtered data.
             var filteredCodeTable = new CodeTableResponse
             {
                 DoCheckIn = codeTableResponse.DoCheckIn,

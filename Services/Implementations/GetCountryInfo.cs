@@ -2,9 +2,7 @@ using moneygram_api.Models.CountryInfoRequest;
 using moneygram_api.Models.CountryInfoResponse;
 using moneygram_api.Services.Interfaces;
 using moneygram_api.Settings;
-using moneygram_api.DTOs;
 using RestSharp;
-using System;
 using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using RequestEnvelope = moneygram_api.Models.CountryInfoRequest.Envelope;
@@ -12,6 +10,7 @@ using RequestBody = moneygram_api.Models.CountryInfoRequest.Body;
 using ResponseEnvelope = moneygram_api.Models.CountryInfoResponse.Envelope;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using System.Linq;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -21,15 +20,17 @@ namespace moneygram_api.Services.Implementations
 
         public GetCountryInfo(IConfigurations configurations)
         {
-            _configurations = configurations;
+            _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
         }
 
         public async Task<CountryInfoResponse> Fetch(string? countryCode = null)
         {
             var options = new RestClientOptions(_configurations.BaseUrl)
             {
-                MaxTimeout = -1,
+                MaxTimeout = 30000,
             };
+            ProxySettingsUtility.ApplyProxySettings(options, _configurations);
+
             var client = new RestClient(options);
             var restRequest = new RestRequest(_configurations.Resource, Method.Post);
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#countryInfo");
@@ -44,7 +45,7 @@ namespace moneygram_api.Services.Implementations
                         AgentID = _configurations.AgentId,
                         Token = _configurations.Token,
                         AgentSequence = _configurations.Sequence,
-                        TimeStamp = DateTime.Now,
+                        TimeStamp = DateTime.UtcNow,
                         ApiVersion = _configurations.ApiVersion,
                         ClientSoftwareVersion = _configurations.ClientSoftwareVer,
                         ChannelType = "LOCATION",
@@ -54,7 +55,6 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
-
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -63,7 +63,12 @@ namespace moneygram_api.Services.Implementations
                 if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     var errorResponse = ErrorDictionary.GetErrorResponse(503);
-                    throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                    throw new BaseCustomException(
+                        errorResponse.ErrorCode,
+                        errorResponse.ErrorMessage,
+                        errorResponse.OffendingField,
+                        DateTime.UtcNow
+                    );
                 }
                 return res;
             });
@@ -72,7 +77,7 @@ namespace moneygram_api.Services.Implementations
             {
                 if (string.IsNullOrEmpty(response.Content))
                 {
-                    throw new Exception("Response content is null or empty");
+                    throw new BaseCustomException(500, "Response content is null or empty.", "responseContent", DateTime.UtcNow);
                 }
 
                 var responseEnvelope = ResponseEnvelope.Deserialize<ResponseEnvelope>(response.Content);
@@ -88,10 +93,8 @@ namespace moneygram_api.Services.Implementations
                         .ToList();
                 }
 
-                // Load country data from JSON
                 CountryDataLoader.LoadCountryData("Media/countries_data.json");
-                
-                // Enrich data with additional fields
+
                 foreach (var country in distinctCountries)
                 {
                     var countryData = CountryDataLoader.GetCountryData(country.CountryCode);
@@ -124,17 +127,31 @@ namespace moneygram_api.Services.Implementations
                 }
                 else
                 {
-                    throw new Exception("Response content is null");
+                    throw new BaseCustomException(500, "Response content is null.", "responseContent", DateTime.UtcNow);
                 }
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
             {
                 var errorResponse = ErrorDictionary.GetErrorResponse(503);
-                throw new Exception($"{errorResponse.ErrorMessage} - {errorResponse.OffendingField}");
+                throw new BaseCustomException(
+                    errorResponse.ErrorCode,
+                    errorResponse.ErrorMessage,
+                    errorResponse.OffendingField,
+                    DateTime.UtcNow
+                );
             }
             else
             {
-                throw new Exception($"Request failed with status code {response.StatusCode}: {response.Content}");
+                var errorResponse = ErrorDictionary.GetErrorResponse(
+                    (int)response.StatusCode,
+                    response.Content ?? $"Request failed with status code {response.StatusCode}"
+                );
+                throw new BaseCustomException(
+                    errorResponse.ErrorCode,
+                    errorResponse.ErrorMessage,
+                    errorResponse.OffendingField,
+                    DateTime.UtcNow
+                );
             }
         }
     }
