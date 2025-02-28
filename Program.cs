@@ -111,6 +111,9 @@ builder.Services.AddScoped<ILocalCountryInfoService, LocalCountryInfoService>();
 // Register the ILocalCurrencyInfoService
 builder.Services.AddScoped<ILocalCurrencyInfoService, LocalCurrencyInfoService>();
 
+// Register the IUserService
+builder.Services.AddScoped<IUserService, UserService>();
+
 // Register the DataSyncBackgroundService
 builder.Services.AddHostedService<DataSyncBackgroundService>();
 
@@ -133,6 +136,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Configure the Clientele database context
 builder.Services.AddDbContext<KycDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("KycConnection")));
+
+// Configure the SSO database context
+builder.Services.AddDbContext<SSODbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("SSOConnection")));
 
 // Add health checks
 builder.Services.AddHealthChecks()
