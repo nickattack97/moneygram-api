@@ -15,10 +15,13 @@ namespace moneygram_api.Controllers
     {
         private readonly IAuthService _authService;
         private readonly ITokenService _tokenService;
-        public AuthController(IAuthService authService, ITokenService tokenService)
+        private readonly IUserService _userService;
+
+        public AuthController(IAuthService authService, ITokenService tokenService, IUserService userService)
         {
             _authService = authService;
             _tokenService = tokenService;
+            _userService = userService;
         }
         
 
@@ -79,7 +82,31 @@ namespace moneygram_api.Controllers
             }
         }
 
+        [HttpGet("me")]
+        [Authorize]
+        public async Task<IActionResult> GetUserProfile()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst("id")?.Value;
+                if (string.IsNullOrEmpty(userIdClaim))
+                    return BadRequest("Invalid user ID in token.");
 
+                if (!long.TryParse(userIdClaim, out var userId))
+                    return BadRequest("User ID is not in a valid format.");
+
+                var user = await _userService.GetUserProfileAsync(userId);
+                if (user == null)
+                    return NotFound("User not found.");
+
+                return Ok(user);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, "Error fetching user profile.");
+            }
+        }
+        
         public class AuthResponseDTO
         {
             public string Token { get; set; } = string.Empty;
