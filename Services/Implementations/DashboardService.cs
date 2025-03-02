@@ -1,10 +1,11 @@
-using moneygram_api.Data;
-using moneygram_api.Models;
-using moneygram_api.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using moneygram_api.Data;
+using moneygram_api.DTOs;
+using moneygram_api.Services.Interfaces;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -21,6 +22,7 @@ namespace moneygram_api.Services.Implementations
         public async Task<List<FundsSentData>> GetFundsSentOverviewAsync()
         {
             return await _context.SendTransactions
+                .Where(t => t.Successful == true) // Filter for successful transactions
                 .GroupBy(t => t.CommitDate.Value.Month)
                 .Select(g => new FundsSentData
                 {
@@ -48,6 +50,7 @@ namespace moneygram_api.Services.Implementations
         public async Task<List<TopRecipientCountryData>> GetTopRecipientCountriesAsync()
         {
             return await _context.SendTransactions
+                .Where(t => t.Successful == true) // Filter for successful transactions
                 .GroupBy(t => t.ReceiverCountry)
                 .Select(g => new TopRecipientCountryData
                 {
@@ -63,6 +66,7 @@ namespace moneygram_api.Services.Implementations
         public async Task<List<RecentTransactionData>> GetRecentTransactionsAsync()
         {
             return await _context.SendTransactions
+                .Where(t => t.Successful == true) // Filter for successful transactions
                 .OrderByDescending(t => t.CommitDate)
                 .Take(10) // Last 10 transactions
                 .Select(t => new RecentTransactionData
@@ -70,10 +74,10 @@ namespace moneygram_api.Services.Implementations
                     Sender = t.Sender,
                     Receiver = t.Receiver,
                     Amount = t.SendAmount ?? 0,
-                    Date = t.CommitDate ?? DateTime.MinValue
+                    Date = t.CommitDate ?? DateTime.MinValue,
+                    Successful = t.Successful ?? false
                 })
                 .ToListAsync();
         }
     }
-
 }
