@@ -52,6 +52,69 @@ namespace moneygram_api.Controllers
             }
         }
 
+        [HttpPut("change-forgotten-password")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ChangeForgottenPassword([FromBody] ChangeForgottenPasswordRequestDTO request)
+        {
+            try
+            {
+                var result = await _authService.ChangeForgottenPasswordAsync(request);
+                return Ok(new { Success = result, Message = "Password changed successfully." });
+            }
+            catch (BaseCustomException ex)
+            {
+                return StatusCode(ex.ErrorCode, new ErrorResponseDTO
+                {
+                    ErrorCode = ex.ErrorCode.ToString(),
+                    Message = ex.ErrorMessage,
+                    OffendingField = ex.OffendingField,
+                    TimeStamp = ex.TimeStamp.ToString("o")
+                });
+            }
+        }
+
+        [HttpPost("send-forgot-password-otp/{username}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendForgotPasswordOtp(string username)
+        {
+            try
+            {
+                var result = await _authService.SendForgotPasswordOtpAsync(username);
+                return Ok(result);
+            }
+            catch (BaseCustomException ex)
+            {
+                return StatusCode(ex.ErrorCode, new ErrorResponseDTO
+                {
+                    ErrorCode = ex.ErrorCode.ToString(),
+                    Message = ex.ErrorMessage,
+                    OffendingField = ex.OffendingField,
+                    TimeStamp = ex.TimeStamp.ToString("o")
+                });
+            }
+        }
+
+        [HttpPost("resend-forgot-password-otp/{username}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ResendForgotPasswordOtp(string username)
+        {
+            try
+            {
+                var result = await _authService.ResendForgotPasswordOtpAsync(username);
+                return Ok(result);
+            }
+            catch (BaseCustomException ex)
+            {
+                return StatusCode(ex.ErrorCode, new ErrorResponseDTO
+                {
+                    ErrorCode = ex.ErrorCode.ToString(),
+                    Message = ex.ErrorMessage,
+                    OffendingField = ex.OffendingField,
+                    TimeStamp = ex.TimeStamp.ToString("o")
+                });
+            }
+        }
+
         [HttpGet("validate-token")]
         [Authorize]
         public async Task<IActionResult> ValidateToken()
