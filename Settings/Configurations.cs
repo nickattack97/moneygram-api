@@ -9,6 +9,9 @@ namespace moneygram_api.Settings
         string Resource { get; }
         string AuthBaseUrl { get; }
         string AuthResource { get; }
+        string ForgotPasswordResource { get; }
+        string ResendForgotPasswordOtpResource { get; }
+        string ChangeForgottenPasswordResource { get; }
         string AgentId { get; }
         string Token { get; }
         int Sequence { get; }
@@ -38,7 +41,10 @@ namespace moneygram_api.Settings
 
         public string BaseUrl => _configuration.GetSection("AppSettings")["BaseUrl"] ?? string.Empty;
         public string AuthBaseUrl => _configuration.GetSection("UserConnectSettings")["BaseUrl"] ?? string.Empty;
-        public string AuthResource => _configuration.GetSection("UserConnectSettings")["Resource"] ?? string.Empty;
+        public string AuthResource => _configuration.GetSection("UserConnectSettings")["LoginResource"] ?? string.Empty;
+        public string ForgotPasswordResource => _configuration.GetSection("UserConnectSettings")["ForgotPasswordResource"] ?? string.Empty;
+        public string ResendForgotPasswordOtpResource => _configuration.GetSection("UserConnectSettings")["ResendForgotPasswordOtpResource"] ?? string.Empty;
+        public string ChangeForgottenPasswordResource => _configuration.GetSection("UserConnectSettings")["ChangeForgottenPasswordResource"] ?? string.Empty;
         public string Resource => _configuration.GetSection("AppSettings")["Resource"] ?? string.Empty;
         public string AgentId => _configuration.GetSection("AppSettings")["AgentId"] ?? string.Empty;
         public string Token => _configuration.GetSection("AppSettings")["Token"] ?? string.Empty;
