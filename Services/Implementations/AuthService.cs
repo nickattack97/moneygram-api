@@ -20,7 +20,7 @@ namespace moneygram_api.Services.Implementations
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
         }
 
-        public async Task<string> AuthenticateAsync(LoginRequestDTO loginRequest)
+        public async Task<JWT> AuthenticateAsync(LoginRequestDTO loginRequest)
         {
             // Validate all required fields
             if (loginRequest == null || 
@@ -85,18 +85,19 @@ namespace moneygram_api.Services.Implementations
                         }
 
                         var jwt = JsonSerializer.Deserialize<JWT>(response.Content,
-                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                        if (jwt?.Token == null)
+                        if (jwt == null)
                         {
                             throw new BaseCustomException(
                                 500,
-                                "Token not found in the response.",
-                                "jwtToken",
+                                "Invalid JWT response.",
+                                "jwt",
                                 DateTime.UtcNow
                             );
                         }
-                        return jwt.Token;
+
+                        return jwt;
 
                     case HttpStatusCode.BadRequest:
                         string errorMessage = "Invalid login request.";
@@ -430,6 +431,131 @@ public async Task<ForgotPasswordOtpResponseDTO> SendForgotPasswordOtpAsync(strin
         }
     }
 
+
+    public async Task<bool> ChangePasswordAsync(string token, ChangePasswordRequestDTO request)
+    {
+        if (string.IsNullOrEmpty(request.NewPassword) || string.IsNullOrEmpty(request.ConfirmPassword))
+        {
+            throw new BaseCustomException(
+                400,
+                "New password and confirm password are required.",
+                "password",
+                DateTime.UtcNow
+            );
+        }
+
+        if (request.NewPassword != request.ConfirmPassword)
+        {
+            throw new BaseCustomException(
+                400,
+                "Passwords do not match.",
+                "confirmPassword",
+                DateTime.UtcNow
+            );
+        }
+
+        var baseUrl = _configurations.AuthBaseUrl;
+        var resource = _configurations.ChangePasswordResource;
+
+        if (string.IsNullOrEmpty(baseUrl) || string.IsNullOrEmpty(resource))
+        {
+            throw new BaseCustomException(
+                500,
+                "Change password configuration is missing.",
+                "configuration",
+                DateTime.UtcNow
+            );
+        }
+
+        var options = new RestClientOptions(baseUrl)
+        {
+            MaxTimeout = 30000
+        };
+
+        using var client = new RestClient(options);
+
+        var requestBody = new
+        {
+            newPassword = request.NewPassword,
+            confirmPassword = request.ConfirmPassword
+        };
+
+        var jsonBody = JsonSerializer.Serialize(requestBody);
+        var restRequest = new RestRequest(resource, Method.Put)
+            .AddHeader("Content-Type", "application/json")
+            .AddHeader("Authorization", $"Bearer {token}")
+            .AddStringBody(jsonBody, DataFormat.Json);
+
+        try
+        {
+            var response = await client.ExecuteAsync(restRequest);
+
+            var responseData = string.IsNullOrEmpty(response.Content)
+                ? new { info = "" }
+                : JsonSerializer.Deserialize<dynamic>(response.Content);
+
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.OK:
+                    return true;
+
+                case HttpStatusCode.BadRequest:
+                    string errorMessage = responseData?.info ?? "Invalid request.";
+                    string offendingField = "unknown";
+
+                    if (errorMessage.Contains("password", StringComparison.OrdinalIgnoreCase))
+                        offendingField = "newPassword";
+                    else if (errorMessage.Contains("confirm", StringComparison.OrdinalIgnoreCase))
+                        offendingField = "confirmPassword";
+
+                    throw new BaseCustomException(
+                        400,
+                        errorMessage,
+                        offendingField,
+                        DateTime.UtcNow
+                    );
+
+                case HttpStatusCode.Unauthorized:
+                    throw new BaseCustomException(
+                        401,
+                        "Unauthorized. Please log in again.",
+                        "token",
+                        DateTime.UtcNow
+                    );
+
+                default:
+                    throw new BaseCustomException(
+                        (int)response.StatusCode,
+                        responseData?.info ?? response.StatusDescription ?? "Unknown error",
+                        "unknown",
+                        DateTime.UtcNow
+                    );
+            }
+        }
+        catch (JsonException ex)
+        {
+            throw new BaseCustomException(
+                500,
+                $"Failed to parse response: {ex.Message}",
+                "responseContent",
+                DateTime.UtcNow
+            );
+        }
+        catch (BaseCustomException)
+        {
+            throw; // Re-throw custom exceptions directly
+        }
+        catch (Exception ex)
+        {
+            throw new BaseCustomException(
+                500,
+                $"Unexpected error during password change: {ex.Message}",
+                "unknown",
+                DateTime.UtcNow
+            );
+        }
+    }
+
     public async Task<bool> ChangeForgottenPasswordAsync(ChangeForgottenPasswordRequestDTO request)
     {
         if (request == null ||
@@ -563,6 +689,8 @@ public async Task<ForgotPasswordOtpResponseDTO> SendForgotPasswordOtpAsync(strin
     public class JWT
     {
         public string? Token { get; set; }
+        public string? Expired { get; set; }
+        public string? Initial { get; set; }
         public string? Info { get; set; }
     }
     }

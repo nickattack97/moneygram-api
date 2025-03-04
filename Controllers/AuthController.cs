@@ -32,7 +32,7 @@ namespace moneygram_api.Controllers
             try
             {
                 var token = await _authService.AuthenticateAsync(loginRequest);
-                return Ok(new AuthResponseDTO { Token = token });
+                return Ok(token);
             }
             catch (BaseCustomException ex)
             {
@@ -48,6 +48,49 @@ namespace moneygram_api.Controllers
                     Message = ex.ErrorMessage,
                     OffendingField = ex.OffendingField,
                     TimeStamp = ex.TimeStamp.ToString("o")
+                });
+            }
+        }
+
+        [HttpPut("change-password")]
+        [Authorize]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDTO request)
+        {
+            try
+            {
+                var authHeader = Request.Headers["Authorization"].FirstOrDefault();
+                if (string.IsNullOrEmpty(authHeader) || !authHeader.StartsWith("Bearer "))
+                {
+                    return BadRequest(new ErrorResponseDTO 
+                    { 
+                        ErrorCode = "INVALID_TOKEN", 
+                        Message = "No valid Bearer token provided." 
+                    });
+                }
+
+                var token = authHeader.Substring("Bearer ".Length).Trim();
+                var result = await _authService.ChangePasswordAsync(token, request);
+
+                return Ok(new { Success = true, Message = "Password changed successfully." });
+            }
+            catch (BaseCustomException ex)
+            {
+                return StatusCode(ex.ErrorCode, new ErrorResponseDTO
+                {
+                    ErrorCode = ex.ErrorCode.ToString(),
+                    Message = ex.ErrorMessage,
+                    OffendingField = ex.OffendingField,
+                    TimeStamp = ex.TimeStamp.ToString("o")
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ErrorResponseDTO
+                {
+                    ErrorCode = "500",
+                    Message = $"An error occurred: {ex.Message}",
+                    OffendingField = "unknown",
+                    TimeStamp = DateTime.UtcNow.ToString("o")
                 });
             }
         }
@@ -173,6 +216,8 @@ namespace moneygram_api.Controllers
         public class AuthResponseDTO
         {
             public string Token { get; set; } = string.Empty;
+            public string Expired { get; set; } = string.Empty;
+            public string Initial { get; set; } = string.Empty;
         }
 
         public class ErrorResponseDTO

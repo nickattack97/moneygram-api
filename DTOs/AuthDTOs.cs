@@ -21,6 +21,15 @@ namespace moneygram_api.DTOs
 
         public long SystemId { get; set; }
     }
+
+    public class ChangePasswordRequestDTO
+    {
+        [Required(ErrorMessage = "New password is required.")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirm password is required.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
     public class ChangeForgottenPasswordRequestDTO
     {
         [Required(ErrorMessage = "Username is required.")]
