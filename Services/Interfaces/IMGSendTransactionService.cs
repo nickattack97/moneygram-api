@@ -8,5 +8,7 @@ namespace moneygram_api.Services.Interfaces
     {
         Task<List<SendTransaction>> GetSendTransactionsAsync();
         Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction);
+        Task<List<SendTransaction>> GetTransactionsByUserAsync(string username = null);
+        Task<List<SendTransaction>> GetMyTransactionsAsync();
     }
 }

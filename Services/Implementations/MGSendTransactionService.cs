@@ -12,15 +12,53 @@ namespace moneygram_api.Services.Implementations
     public class MGSendTransactionService : IMGSendTransactionService
     {
         private readonly AppDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MGSendTransactionService(AppDbContext context)
+        public MGSendTransactionService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
         public async Task<List<SendTransaction>> GetSendTransactionsAsync()
         {
             return await _context.SendTransactions.ToListAsync();
         }
+
+         // New method to fetch transactions by a specific user (teller)
+        public async Task<List<SendTransaction>> GetTransactionsByUserAsync(string username = null)
+        {
+            // If no username is provided, get the current user from the context
+            if (string.IsNullOrEmpty(username))
+            {
+                username = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
+                
+                if (string.IsNullOrEmpty(username))
+                {
+                    throw new UnauthorizedAccessException("Username not found in token. Re-authenticate.");
+                }
+            }
+            
+            // Query transactions where TellerId matches the specified username
+            return await _context.SendTransactions
+                .Where(t => t.TellerId == username)
+                .OrderByDescending(t => t.AddDate)
+                .ToListAsync();
+        }
+
+        // New method to get transactions by the current authenticated user
+        public async Task<List<SendTransaction>> GetMyTransactionsAsync()
+        {
+            string username = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
+            
+            if (string.IsNullOrEmpty(username))
+            {
+                throw new UnauthorizedAccessException("Username not found in token. Re-authenticate.");
+            }
+            
+            return await GetTransactionsByUserAsync(username);
+        }
+
+
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
         {
             var existingTransaction = await _context.SendTransactions.FirstOrDefaultAsync(t => 
@@ -112,6 +150,13 @@ namespace moneygram_api.Services.Implementations
 
         private SendTransaction CreateNewTransaction(MGSendTransactionDTO transaction)
         {
+            string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
+
+            if (string.IsNullOrEmpty(operatorName))
+            {
+                throw new UnauthorizedAccessException("Username name not found in token. Re-authenticate.");
+            }
+
             return new SendTransaction
             {
                 SessionID = transaction.SessionID,
@@ -153,6 +198,7 @@ namespace moneygram_api.Services.Implementations
                 TransactionPurpose = transaction.TransactionPurpose,
                 SourceOfFunds = transaction.SourceOfFunds,
                 ConsumerID = transaction.ConsumerID,
+                TellerId = operatorName,
             };
         }
 
