@@ -91,6 +91,16 @@ public class SenderInfo
 
     [XmlElement(ElementName = "receiverInfo", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
     public ReceiverInfo ReceiverInfo { get; set; }
+
+    // Additional KYC fields
+    [XmlElement(ElementName = "idImage", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string IdImage { get; set; }
+
+    [XmlElement(ElementName = "imgFormat", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ImgFormat { get; set; }
+
+    [XmlElement(ElementName = "contentType", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ContentType { get; set; }
 }
 
 public class ReceiverInfo

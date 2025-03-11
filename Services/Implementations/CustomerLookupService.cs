@@ -23,7 +23,9 @@ namespace moneygram_api.Services.Implementations
 
         public async Task<MoneyGramConsumerLookupResponse> GetCustomerByNationalIDAsync(string nationalID)
         {
-            var customer = await _context.tblClientele.FirstOrDefaultAsync(c => c.NationalID == nationalID);
+            var customer = await _context.tblClientele
+                .FirstOrDefaultAsync(c => c.NationalID == nationalID);
+
             if (customer == null)
             {
                 var error = ErrorDictionary.GetErrorResponse(616, "nationalId");
@@ -46,10 +48,13 @@ namespace moneygram_api.Services.Implementations
                         SenderAddress2 = customer.Suburb,
                         SenderCity = customer.City,
                         SenderState = customer.District,
-                        SenderCountry = "ZWE", 
-                        ReceiverInfo = null
+                        SenderCountry = "ZWE",
+                        ReceiverInfo = null,
+                        IdImage = customer.NatID_Image != null ? Convert.ToBase64String(customer.NatID_Image) : null,
+                        ImgFormat = customer.Img_Format,
+                        ContentType = customer.ContentType
                     }
-                },
+                }
             };
 
             return response;

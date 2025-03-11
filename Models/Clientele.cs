@@ -19,7 +19,7 @@ namespace moneygram_api.Models
         public string ContentType { get; set; }
         public DateTime? AddDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
-        public string Modification_Reason { get; set; }
-        public string ModifiedBy { get; set; }
+        public string? Modification_Reason { get; set; }
+        public string? ModifiedBy { get; set; }
     }
 }
