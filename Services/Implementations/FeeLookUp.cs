@@ -17,14 +17,23 @@ namespace moneygram_api.Services.Implementations
     public class FeeLookUp : IFeeLookUp
     {
         private readonly IConfigurations _configurations;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public FeeLookUp(IConfigurations configurations)
+        public FeeLookUp(IConfigurations configurations, IHttpContextAccessor httpContextAccessor)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<FeeLookUpResponse> FetchFeeLookUp(FeeLookUpRequestDTO request)
         {
+            string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
+
+            if (string.IsNullOrEmpty(operatorName))
+            {
+                throw new UnauthorizedAccessException("Username name not found in token. Re-authenticate.");
+            }
+
             if (request == null)
             {
                 throw new BaseCustomException(400, "Request cannot be null.", nameof(request), DateTime.UtcNow);
@@ -56,7 +65,7 @@ namespace moneygram_api.Services.Implementations
                         ChannelType = "LOCATION",
                         TimeStamp = DateTime.UtcNow,
                         ProductType = "SEND",
-                        OperatorName = "devTd",
+                        OperatorName = operatorName.Length > 7 ? operatorName.Substring(0, 7) : operatorName,
                         ReceiveAgentID = string.IsNullOrEmpty(request.ReceiveAgentID) ? null : request.ReceiveAgentID,
                         MgCustomerReceiveNumber = string.IsNullOrWhiteSpace(request.CustomerReceiveNumber) ? null : request.CustomerReceiveNumber,
                         MgiRewardsNumber = string.IsNullOrEmpty(request.RewardsNumber) ? null : request.RewardsNumber,
