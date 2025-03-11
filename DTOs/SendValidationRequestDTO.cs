@@ -5,7 +5,6 @@ namespace moneygram_api.DTOs
 {
     public class SendValidationRequestDTO
     {
-        public string OperatorName { get; set; }
         public decimal Amount { get; set; }
         public decimal FeeAmount { get; set; }
         public string DestinationCountry { get; set; }

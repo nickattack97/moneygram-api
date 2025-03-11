@@ -18,14 +18,23 @@ namespace moneygram_api.Services.Implementations
     public class SendValidation : ISendValidation
     {
         private readonly IConfigurations _configurations;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public SendValidation(IConfigurations configurations)
+        public SendValidation(IConfigurations configurations, IHttpContextAccessor httpContextAccessor)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<SendValidationResponse> Push(SendValidationRequestDTO request)
         {
+            string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
+
+            if (string.IsNullOrEmpty(operatorName))
+            {
+                throw new UnauthorizedAccessException("Username name not found in token. Re-authenticate.");
+            }
+
             if (request == null)
             {
                 throw new BaseCustomException(400, "Request cannot be null.", nameof(request), DateTime.UtcNow);
@@ -55,7 +64,7 @@ namespace moneygram_api.Services.Implementations
                         ApiVersion = _configurations.ApiVersion,
                         ClientSoftwareVersion = _configurations.ClientSoftwareVer,
                         ChannelType = "LOCATION",
-                        OperatorName = request.OperatorName,
+                        OperatorName = operatorName.Length > 7 ? operatorName.Substring(0, 7) : operatorName,
                         Amount = request.Amount,
                         FeeAmount = request.FeeAmount,
                         DestinationCountry = request.DestinationCountry,
