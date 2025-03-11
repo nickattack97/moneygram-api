@@ -120,6 +120,9 @@ builder.Services.AddHostedService<DataSyncBackgroundService>();
 // Register the DashboardService
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 
+// Add HttpContextAccessor
+builder.Services.AddHttpContextAccessor();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {

@@ -187,10 +187,16 @@ namespace moneygram_api.Controllers
             return await HandleRequestAsync(() => _saveRewards.Save(request), "SendsController.SaveRewards");
         }
 
-        [HttpGet("get-send-transactions")]
+        [HttpGet("transactions")]
         public async Task<IActionResult> GetSendTransactions()
         {
             return await HandleRequestAsync(() => _sendTransactionService.GetSendTransactionsAsync(), "SendsController.GetSendTransactions");
+        }
+
+        [HttpGet("transactions/my")]
+        public async Task<IActionResult> GetMySendTransactions()
+        {
+            return await HandleRequestAsync(() => _sendTransactionService.GetMyTransactionsAsync(), "SendsController.GetMySendTransactions");
         }
 
         private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string actionName)
