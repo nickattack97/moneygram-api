@@ -69,5 +69,9 @@ namespace moneygram_api.Models
         public DateTime? CommitDate { get; set; }
         public bool? Processed { get; set; }
         public DateTime? ProcessDate { get; set; }
+        public bool? Reversed { get; set; }
+        public DateTime? ReversalTime { get; set; }
+        public string? ReversalReason { get; set; }
+        public string? ReversalTellerId { get; set; }
     }
 }

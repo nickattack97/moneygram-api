@@ -58,6 +58,15 @@ namespace moneygram_api.Services.Implementations
             return await GetTransactionsByUserAsync(username);
         }
 
+             public async Task<SendTransaction> GetTransactionByReferenceNumberAsync(string referenceNumber)
+        {
+            if (string.IsNullOrEmpty(referenceNumber))
+            {
+                throw new ArgumentNullException(nameof(referenceNumber), "Reference number cannot be null or empty.");
+            }
+            return await _context.SendTransactions
+                .FirstOrDefaultAsync(t => t.ReferenceNumber == referenceNumber);
+        }
 
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
         {
@@ -145,7 +154,11 @@ namespace moneygram_api.Services.Implementations
             existing.CommitDate = UpdateIfNull(existing.CommitDate, transaction.CommitDate);
             existing.Processed = UpdateIfNull(existing.Processed, transaction.Processed);
             existing.ProcessDate = UpdateIfNull(existing.ProcessDate, transaction.ProcessDate);
-            
+
+            existing.Reversed = UpdateIfNull(existing.Reversed, transaction.Reversed);
+            existing.ReversalTime = UpdateIfNull(existing.ReversalTime, transaction.ReversalTime);
+            existing.ReversalReason = UpdateIfNull(existing.ReversalReason, transaction.ReversalReason);
+            existing.ReversalTellerId = UpdateIfNull(existing.ReversalTellerId, transaction.ReversalTellerId);            
         }
 
         private SendTransaction CreateNewTransaction(MGSendTransactionDTO transaction)
@@ -199,6 +212,10 @@ namespace moneygram_api.Services.Implementations
                 SourceOfFunds = transaction.SourceOfFunds,
                 ConsumerID = transaction.ConsumerID,
                 TellerId = operatorName,
+                Reversed = transaction.Reversed ?? false, 
+                ReversalTime = transaction.ReversalTime,
+                ReversalReason = transaction.ReversalReason,
+                ReversalTellerId = transaction.ReversalTellerId
             };
         }
 
