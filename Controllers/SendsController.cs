@@ -26,6 +26,9 @@ namespace moneygram_api.Controllers
         private readonly ILocalCodeTableService _localCodeTableService;
         private readonly ILocalCountryInfoService _localCountryInfoService;
         private readonly ILocalCurrencyInfoService _localCurrencyInfoService;
+        private readonly IDetailLookup _detailLookup;
+        private readonly ISendReversal _sendReversal; 
+        private readonly IAmendTransaction _amendTransaction;
 
         public SendsController(
             ISendConsumerLookUp sendConsumerLookUp,
@@ -39,7 +42,10 @@ namespace moneygram_api.Controllers
             ISaveRewards saveRewards,
             ILocalCodeTableService localCodeTableService,
             ILocalCountryInfoService localCountryInfoService,
-            ILocalCurrencyInfoService localCurrencyInfoService)
+            ILocalCurrencyInfoService localCurrencyInfoService,
+            IDetailLookup detailLookup, 
+            ISendReversal sendReversal, 
+            IAmendTransaction amendTransaction) 
         {
             _sendConsumerLookUp = sendConsumerLookUp;
             _feeLookUp = feeLookUp;
@@ -53,6 +59,9 @@ namespace moneygram_api.Controllers
             _localCodeTableService = localCodeTableService;
             _localCountryInfoService = localCountryInfoService;
             _localCurrencyInfoService = localCurrencyInfoService;
+            _detailLookup = detailLookup;
+            _sendReversal = sendReversal; 
+            _amendTransaction = amendTransaction; 
         }
 
         [HttpPost("consumer-lookup")]
@@ -186,11 +195,46 @@ namespace moneygram_api.Controllers
             }
             return await HandleRequestAsync(() => _saveRewards.Save(request), "SendsController.SaveRewards");
         }
+        [HttpGet("detail-lookup/{referenceNumber}")]
+        public async Task<IActionResult> DetailLookup(string referenceNumber)
+        {
+            if (string.IsNullOrEmpty(referenceNumber))
+            {
+            return BadRequest(ErrorDictionary.GetErrorResponse(400, "referenceNumber"));
+            }
+            return await HandleRequestAsync(() => _detailLookup.Lookup(referenceNumber), "SendsController.DetailLookup");
+        }
+
+        [HttpPost("send-reversal")]
+        public async Task<IActionResult> SendReversal([FromBody] SendReversalRequestDTO request)
+        {
+            if (request == null)
+            {
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "sendReversalRequest"));
+            }
+            return await HandleRequestAsync(() => _sendReversal.Reverse(request), "SendsController.SendReversal");
+        }
+
+        [HttpPost("amend-transaction")]
+        public async Task<IActionResult> AmendTransaction([FromBody] AmendTransactionRequestDTO request)
+        {
+            if (request == null)
+            {
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "amendTransactionRequest"));
+            }
+            return await HandleRequestAsync(() => _amendTransaction.Amend(request), "SendsController.AmendTransaction");
+        }
 
         [HttpGet("transactions")]
         public async Task<IActionResult> GetSendTransactions()
         {
             return await HandleRequestAsync(() => _sendTransactionService.GetSendTransactionsAsync(), "SendsController.GetSendTransactions");
+        }
+
+        [HttpGet("transactions/{referenceNumber}")]
+        public async Task<IActionResult> GetSendTransaction([FromRoute] string referenceNumber)
+        {
+            return await HandleRequestAsync(() => _sendTransactionService.GetTransactionByReferenceNumberAsync(referenceNumber), "SendsController.GetSendTransaction");
         }
 
         [HttpGet("transactions/my")]

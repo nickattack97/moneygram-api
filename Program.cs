@@ -123,6 +123,15 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 // Add HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
+// Register the IAmendTransaction service
+builder.Services.AddScoped<IAmendTransaction, AmendTransaction>();
+
+// Register the IDetailLookup service
+builder.Services.AddScoped<IDetailLookup, DetailLookup>();
+
+// Register the ISendReversal service
+builder.Services.AddScoped<ISendReversal, SendReversal>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
