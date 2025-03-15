@@ -29,6 +29,8 @@ namespace moneygram_api.Settings
         int ProxyPort { get; }           
         string ProxyUsername { get; }    
         string ProxyPassword { get; } 
+        string CustomerLookupQuery { get; }
+        string TransactionsLookupQuery { get; }
     }
 
     public class Configurations : IConfigurations
@@ -64,5 +66,8 @@ namespace moneygram_api.Settings
         public string ProxyUsername => _configuration.GetSection("ProxySettings")["ProxyUsername"] ?? string.Empty;
         public string ProxyPassword => _configuration.GetSection("ProxySettings")["ProxyPassword"] ?? string.Empty;
         public int ProxyPort => int.TryParse(_configuration.GetSection("ProxySettings")["ProxyPort"], out var result) ? result : 0;
+        public string CustomerLookupQuery => _configuration.GetSection("DatabaseQueries")["CustomerLookupQuery"] ?? "SELECT * FROM tblClientele WHERE NationalID = {0}";
+        public string TransactionsLookupQuery => _configuration.GetSection("DatabaseQueries")["TransactionsLookupQuery"] ?? "SELECT * FROM SendTransactions WHERE SenderPhotoIDNumber = {0} AND Successful = 1";
+    
     }
 }
