@@ -207,6 +207,7 @@ namespace moneygram_api.Services.Implementations
                 ReceiverZipCode = transaction.ReceiverZipCode,
                 ReceiverPhotoIDType = transaction.ReceiverPhotoIDType,
                 ReceiverPhotoIDNumber = transaction.ReceiverPhotoIDNumber,
+                ReceiverPhoneNumber = transaction.ReceiverPhoneNumber,
                 Occupation = transaction.Occupation,
                 TransactionPurpose = transaction.TransactionPurpose,
                 SourceOfFunds = transaction.SourceOfFunds,

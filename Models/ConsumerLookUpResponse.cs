@@ -3,6 +3,7 @@ namespace moneygram_api.Models.ConsumerLookUpResponse;
 using System;
 using System.Collections.Generic;
 using System.Xml.Serialization;
+using System.Globalization;
 using moneygram_api.Utilities;
 
 [XmlRoot(ElementName = "Envelope", Namespace = "http://schemas.xmlsoap.org/soap/envelope/")]
@@ -81,7 +82,15 @@ public class SenderInfo
     public string SenderBirthCountry { get; set; }
 
     [XmlElement(ElementName = "senderDOB", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-    public DateTime SenderDOB { get; set; }
+    [XmlIgnore]
+    public DateTime SenderDOBObject { get; set; }
+
+    [XmlElement(ElementName = "senderDOB", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string SenderDOB
+    {
+        get => SenderDOBObject.ToString("yyyy-MM-dd");
+        set => SenderDOBObject = DateTime.ParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
 
     [XmlElement(ElementName = "senderHomePhoneCountryCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderHomePhoneCountryCode { get; set; }
@@ -134,6 +143,11 @@ public class ReceiverInfo
 
     [XmlElement(ElementName = "receiverPhone", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiverPhone { get; set; }
+
+    [XmlElement(ElementName = "receiverPhotoIdNumber", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ReceiverPhotoIdNumber { get; set; }
+    [XmlElement(ElementName = "receiverPhotoIdType", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string ReceiverPhotoIdType { get; set; }
 
     [XmlElement(ElementName = "sendAmount", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public decimal SendAmount { get; set; }
