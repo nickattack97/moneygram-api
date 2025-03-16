@@ -56,5 +56,7 @@ namespace moneygram_api.DTOs
         public DateTime? ReversalTime { get; set; }
         public string? ReversalReason { get; set; }
         public string? ReversalTellerId { get; set; }
+        public string? idImage { get; set; }
+        public string? contentType { get; set; }
     }
 }

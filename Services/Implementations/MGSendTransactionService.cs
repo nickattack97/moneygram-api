@@ -12,13 +12,16 @@ namespace moneygram_api.Services.Implementations
     public class MGSendTransactionService : IMGSendTransactionService
     {
         private readonly AppDbContext _context;
+        private readonly KycDbContext _kycContext; 
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MGSendTransactionService(AppDbContext context, IHttpContextAccessor httpContextAccessor)
+        public MGSendTransactionService(AppDbContext context, KycDbContext kycContext, IHttpContextAccessor httpContextAccessor)
         {
             _context = context;
+            _kycContext = kycContext;
             _httpContextAccessor = httpContextAccessor;
         }
+
         public async Task<List<SendTransaction>> GetSendTransactionsAsync()
         {
             return await _context.SendTransactions.ToListAsync();
@@ -70,20 +73,25 @@ namespace moneygram_api.Services.Implementations
 
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
         {
-            var existingTransaction = await _context.SendTransactions.FirstOrDefaultAsync(t => 
-                t.ID == transaction.recordId || 
-                (t.SessionID == transaction.SessionID));
+            // Log the transaction to SendTransactions
+            var existingTransaction = await _context.SendTransactions.FirstOrDefaultAsync(t =>
+                t.ID == transaction.recordId || (t.SessionID == transaction.SessionID));
 
+            SendTransaction transactionEntity;
             if (existingTransaction != null)
             {
                 UpdateTransaction(existingTransaction, transaction);
                 _context.SendTransactions.Update(existingTransaction);
+                transactionEntity = existingTransaction;
             }
             else
             {
-                existingTransaction = CreateNewTransaction(transaction);
-                _context.SendTransactions.Add(existingTransaction);
+                transactionEntity = CreateNewTransaction(transaction);
+                _context.SendTransactions.Add(transactionEntity);
             }
+
+            // Check and log sender to tblClientele if not exists
+            await LogSenderToClienteleAsync(transaction);
 
             var result = await _context.SaveChangesAsync();
 
@@ -91,9 +99,69 @@ namespace moneygram_api.Services.Implementations
             {
                 Success = result > 0,
                 TimeStamp = DateTime.Now,
-                RecordId = existingTransaction?.ID ?? 0,
+                RecordId = transactionEntity.ID,
                 Message = result > 0 ? (existingTransaction != null ? "Transaction updated successfully." : "Transaction logged successfully.") : "Failed to log/update transaction."
             };
+        }
+
+        private async Task LogSenderToClienteleAsync(MGSendTransactionDTO transaction)
+        {
+            var existingClient = await _kycContext.tblClientele
+                .FirstOrDefaultAsync(c => c.NationalID == transaction.SenderPhotoIdNumber);
+
+            // Extract pure Base64 from data URI if present
+            string base64String = transaction.idImage ?? "";
+            if (base64String.StartsWith("data:image/"))
+            {
+                // Split on comma and take the part after it
+                var parts = base64String.Split(',');
+                if (parts.Length > 1)
+                {
+                    base64String = parts[1];
+                }
+            }
+
+            if (existingClient == null)
+            {
+                var newClient = new Clientele
+                {
+                    FirstName = transaction.SenderFirstName ?? "",
+                    MiddleName = transaction.SenderMiddleName,
+                    Surname = transaction.SenderLastName ?? "",
+                    Gender = transaction.SenderGender ?? "",
+                    NationalID = transaction.SenderPhotoIdNumber ?? "",
+                    Address = transaction.SenderAddress1 ?? "",
+                    City = transaction.SenderCity ?? "",
+                    District = "",
+                    Suburb = transaction.SenderAddress2 ?? "",
+                    NatID_Image = string.IsNullOrEmpty(base64String) 
+                        ? Array.Empty<byte>() 
+                        : Convert.FromBase64String(base64String),
+                    Img_Format = MimeToExtension.TryGetValue(transaction.contentType ?? "image/jpeg", out var extension) 
+                        ? extension 
+                        : ".jpeg",
+                    ContentType = transaction.contentType ?? "image/jpeg",
+                    AddDate = transaction.AddDate ?? DateTime.Now,
+                    ModifiedDate = null,
+                    Modification_Reason = null,
+                    ModifiedBy = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString()
+                };
+                _kycContext.tblClientele.Add(newClient);
+                await _kycContext.SaveChangesAsync();
+            }
+            else if (!string.IsNullOrEmpty(base64String) && (existingClient.NatID_Image == null || existingClient.NatID_Image.Length == 0))
+            {
+                // Update KYC image if missing
+                existingClient.NatID_Image = Convert.FromBase64String(base64String);
+                existingClient.Img_Format = MimeToExtension.TryGetValue(transaction.contentType ?? "image/jpeg", out var extension) 
+                                            ? extension 
+                                            : ".jpeg";
+                existingClient.ContentType = transaction.contentType ?? "image/jpeg";
+                existingClient.ModifiedDate = DateTime.Now;
+                existingClient.ModifiedBy = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
+                _kycContext.tblClientele.Update(existingClient);
+                await _kycContext.SaveChangesAsync();
+            }
         }
 
         private void UpdateTransaction(SendTransaction existing, MGSendTransactionDTO transaction)
@@ -219,6 +287,17 @@ namespace moneygram_api.Services.Implementations
                 ReversalTellerId = transaction.ReversalTellerId
             };
         }
+
+        private static readonly Dictionary<string, string> MimeToExtension = new()
+        {
+            { "image/jpeg", ".jpeg" },
+            { "image/jpg", ".jpg" },
+            { "image/png", ".png" },
+            { "image/gif", ".gif" },
+            { "image/bmp", ".bmp" },
+            { "image/webp", ".webp" },
+            { "application/pdf", ".pdf" } // Added PDF support
+        };
 
         private static T UpdateIfNull<T>(T existingValue, T newValue)
         {
