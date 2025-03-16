@@ -62,6 +62,27 @@ namespace moneygram_api.Services.Implementations
             public string? SenderDOB { get; set; }
         }
 
+        public class ClienteleDto
+        {
+            public long ID { get; set; }
+            public string FirstName { get; set; }
+            public string? MiddleName { get; set; }
+            public string Surname { get; set; }
+            public string Gender { get; set; }
+            public string NationalID { get; set; }
+            public string? Address { get; set; }
+            public string? City { get; set; }
+            public string? District { get; set; }
+            public string? Suburb { get; set; }
+            public byte[]? NatID_Image { get; set; } = Array.Empty<byte>(); 
+            public string? Img_Format { get; set; } = string.Empty;
+            public string? ContentType { get; set; } = string.Empty;
+            public DateTime? AddDate { get; set; }
+            public DateTime? ModifiedDate { get; set; }
+            public string? Modification_Reason { get; set; }
+            public string? ModifiedBy { get; set; }
+        }
+
         public async Task<MoneyGramConsumerLookupResponse> GetCustomerByNationalIDAsync(string nationalID)
         {
             // Normalize the input National ID
@@ -76,6 +97,26 @@ namespace moneygram_api.Services.Implementations
             // Fetch sender details from tblClientele
             var customer = await _kycContext.tblClientele
                 .FromSqlRaw(_configurations.CustomerLookupQuery, normalizedNationalID)
+                .Select(c => new ClienteleDto
+                {
+                    ID = c.ID,
+                    FirstName = c.FirstName,
+                    MiddleName = c.MiddleName,
+                    Surname = c.Surname,
+                    Gender = c.Gender,
+                    NationalID = c.NationalID,
+                    Address = c.Address,
+                    City = c.City,
+                    District = c.District,
+                    Suburb = c.Suburb,
+                    NatID_Image = c.NatID_Image ?? Array.Empty<byte>(), 
+                    Img_Format = c.Img_Format ?? string.Empty, 
+                    ContentType = c.ContentType ?? string.Empty, 
+                    AddDate = c.AddDate,
+                    ModifiedDate = c.ModifiedDate,
+                    Modification_Reason = c.Modification_Reason,
+                    ModifiedBy = c.ModifiedBy
+                })
                 .FirstOrDefaultAsync();
 
             if (customer == null)
