@@ -89,6 +89,9 @@ public class FeeInfo
     [XmlElement(ElementName = "sendAmountAltered", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public bool SendAmountAltered { get; set; }
 
+    [XmlElement(ElementName = "promotionInfo", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public PromotionInfo PromotionInfo { get; set; }
+
     [XmlElement(ElementName = "sendAmounts", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public SendAmounts SendAmounts { get; set; }
 
@@ -103,6 +106,36 @@ public class FeeInfo
 
     [XmlElement(ElementName = "exchangeRateSource", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ExchangeRateSource { get; set; }
+}
+
+public class PromotionInfo
+{
+    [XmlElement("promotionCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public long PromotionCode { get; set; }
+
+    [XmlElement("promotionDiscountId", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public int PromotionDiscountId { get; set; }
+
+    [XmlElement("promotionCategoryId", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public int PromotionCategoryId { get; set; }
+
+    [XmlElement("promotionDiscountAmount", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public decimal PromotionDiscountAmount { get; set; }
+
+    [XmlElement("promotionErrorCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public long PromotionErrorCode { get; set; }
+
+    [XmlElement("promotionErrorMessage", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public PromotionErrorMessage PromotionErrorMessage { get; set; }
+}
+
+public class PromotionErrorMessage
+{
+    [XmlElement("longLanguageCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string LongLanguageCode { get; set; }
+
+    [XmlElement("textTranslation", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string TextTranslation { get; set; }
 }
 
 public class SendAmounts
