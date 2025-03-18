@@ -243,6 +243,19 @@ namespace moneygram_api.Controllers
             return await HandleRequestAsync(() => _sendTransactionService.GetMyTransactionsAsync(), "SendsController.GetMySendTransactions");
         }
 
+        [HttpGet("national-ids")]
+        public async Task<IActionResult> GetNationalIds([FromQuery] string search = null)
+        {
+            return await HandleRequestAsync(() => _sendTransactionService.GetNationalIdsAsync(search), "SendsController.GetNationalIds");
+        }
+
+        [HttpGet("mobile-numbers")]
+        public async Task<IActionResult> GetMobileNumbers([FromQuery] string search = null)
+        {
+            return await HandleRequestAsync(() => _sendTransactionService.GetMobileNumbersAsync(search), "SendsController.GetMobileNumbers");
+        }
+        
+
         private async Task<IActionResult> HandleRequestAsync<T>(Func<Task<T>> func, string actionName)
         {
             try

@@ -10,6 +10,8 @@ namespace moneygram_api.Services.Interfaces
         Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction);
         Task<List<SendTransaction>> GetTransactionsByUserAsync(string username = null);
         Task<List<SendTransaction>> GetMyTransactionsAsync();
+         Task<List<string>> GetNationalIdsAsync(string search = null);
+        Task<List<string>> GetMobileNumbersAsync(string search = null); 
         Task<SendTransaction> GetTransactionByReferenceNumberAsync(string referenceNumber);
     }
 }

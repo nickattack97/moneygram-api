@@ -61,14 +61,58 @@ namespace moneygram_api.Services.Implementations
             return await GetTransactionsByUserAsync(username);
         }
 
-             public async Task<SendTransaction> GetTransactionByReferenceNumberAsync(string referenceNumber)
+        public async Task<SendTransaction> GetTransactionByReferenceNumberAsync(string referenceNumber)
         {
             if (string.IsNullOrEmpty(referenceNumber))
             {
                 throw new ArgumentNullException(nameof(referenceNumber), "Reference number cannot be null or empty.");
             }
-            return await _context.SendTransactions
+            var transaction = await _context.SendTransactions
                 .FirstOrDefaultAsync(t => t.ReferenceNumber == referenceNumber);
+
+            if (transaction == null)
+            {
+                throw new InvalidOperationException($"Transaction with reference number {referenceNumber} not found.");
+            }
+
+            return transaction;
+        }
+
+        public async Task<List<string>> GetNationalIdsAsync(string search = null)
+        {
+            var query = _context.SendTransactions
+                .Select(t => t.SenderPhotoIDNumber)
+                .Where(id => !string.IsNullOrEmpty(id))
+                .Distinct();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(id => id.Contains(search));
+            }
+
+            return await query
+                .OrderBy(id => id)
+                .Take(50) // Limit results to prevent overwhelming the frontend
+                .ToListAsync();
+        }
+
+        public async Task<List<string>> GetMobileNumbersAsync(string search = null)
+        {
+            var query = _context.SendTransactions
+                .Select(t => t.SenderPhoneNumber)
+                .Where(phone => !string.IsNullOrEmpty(phone))
+                .Distinct();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(phone => phone.Contains(search));
+            }
+
+            return await query
+                .Where(phone => phone != null)
+                .OrderBy(phone => phone)
+                .Take(50) // Limit results to prevent overwhelming the frontend
+                .ToListAsync();
         }
 
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
