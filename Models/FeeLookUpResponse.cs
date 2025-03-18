@@ -111,7 +111,7 @@ public class FeeInfo
 public class PromotionInfo
 {
     [XmlElement("promotionCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-    public long PromotionCode { get; set; }
+    public string PromotionCode { get; set; }
 
     [XmlElement("promotionDiscountId", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public int PromotionDiscountId { get; set; }
