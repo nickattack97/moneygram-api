@@ -9,10 +9,11 @@ using moneygram_api.Enums;
 using moneygram_api.Utilities;
 using moneygram_api.Models;
 using moneygram_api.Models.ConsumerLookUpResponse;
+using moneygram_api.Models.CountryInfoResponse;
 using moneygram_api.Services.Interfaces;
 using moneygram_api.Exceptions;
 using moneygram_api.Settings;
-using Microsoft.Extensions.Logging; // Add this for logging
+using Microsoft.Extensions.Logging;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -21,17 +22,25 @@ namespace moneygram_api.Services.Implementations
         private readonly KycDbContext _kycContext;
         private readonly AppDbContext _appContext;
         private readonly IConfigurations _configurations;
-        private readonly ILogger<CustomerLookupService> _logger; // Add logger
+        private readonly ILogger<CustomerLookupService> _logger;
+        private readonly ILocalCountryInfoService _countryInfoService;
+        private Dictionary<string, string> _countryNameToCodeMapping;
 
-        public CustomerLookupService(KycDbContext kycContext, AppDbContext appContext, IConfigurations configurations, ILogger<CustomerLookupService> logger)
+        public CustomerLookupService(
+            KycDbContext kycContext, 
+            AppDbContext appContext, 
+            IConfigurations configurations, 
+            ILogger<CustomerLookupService> logger,
+            ILocalCountryInfoService countryInfoService)
         {
             _kycContext = kycContext;
             _appContext = appContext;
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _countryInfoService = countryInfoService ?? throw new ArgumentNullException(nameof(countryInfoService));
+            _countryNameToCodeMapping = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         }
 
-        // Normalize National ID locally for input validation
         private string NormalizeNationalID(string nationalID)
         {
             if (string.IsNullOrWhiteSpace(nationalID))
@@ -43,7 +52,42 @@ namespace moneygram_api.Services.Implementations
                 .ToArray());
         }
 
-        // DTO for SendTransactions query results with nullable properties
+        private async Task InitializeCountryMappingAsync()
+        {
+            if (_countryNameToCodeMapping.Count == 0)
+            {
+                var countryInfoResponse = await _countryInfoService.GetCountryInfoAsync(null);
+                
+                foreach (var country in countryInfoResponse.CountryInfo)
+                {
+                    if (!string.IsNullOrEmpty(country.CountryName) && !string.IsNullOrEmpty(country.CountryCode))
+                    {
+                        _countryNameToCodeMapping[country.CountryName] = country.CountryCode;
+                    }
+                }
+                
+                _logger.LogInformation($"Initialized country mapping with {_countryNameToCodeMapping.Count} entries");
+            }
+        }
+
+        private string NormalizeCountryName(string countryName)
+        {
+            if (string.IsNullOrWhiteSpace(countryName))
+                return string.Empty;
+
+            // If it's already a 3-letter code, assume it's correct
+            if (countryName.Length == 3 && countryName.All(char.IsLetter))
+                return countryName;
+
+            // Try to find the country code from the mapping
+            if (_countryNameToCodeMapping.TryGetValue(countryName, out var countryCode))
+                return countryCode;
+
+            // If we can't find it, log a warning and return the original value
+            _logger.LogWarning($"Could not normalize country name: {countryName}");
+            return countryName;
+        }
+
         private class TransactionDto
         {
             public string? ReceiverFirstName { get; set; }
@@ -60,9 +104,10 @@ namespace moneygram_api.Services.Implementations
             public string? ReceiveCurrency { get; set; }
             public decimal? SendAmount { get; set; }
             public string? SenderDOB { get; set; }
+            public DateTime? ProcessDate { get; set; }
         }
 
-        public class ClienteleDto
+        private class ClienteleDto
         {
             public long ID { get; set; }
             public string FirstName { get; set; }
@@ -74,7 +119,7 @@ namespace moneygram_api.Services.Implementations
             public string? City { get; set; }
             public string? District { get; set; }
             public string? Suburb { get; set; }
-            public byte[]? NatID_Image { get; set; } = Array.Empty<byte>(); 
+            public byte[]? NatID_Image { get; set; } = Array.Empty<byte>();
             public string? Img_Format { get; set; } = string.Empty;
             public string? ContentType { get; set; } = string.Empty;
             public DateTime? AddDate { get; set; }
@@ -85,7 +130,9 @@ namespace moneygram_api.Services.Implementations
 
         public async Task<MoneyGramConsumerLookupResponse> GetCustomerByNationalIDAsync(string nationalID)
         {
-            // Normalize the input National ID
+            // Initialize the country mapping
+            await InitializeCountryMappingAsync();
+            
             var normalizedNationalID = NormalizeNationalID(nationalID);
 
             if (string.IsNullOrEmpty(normalizedNationalID))
@@ -94,7 +141,6 @@ namespace moneygram_api.Services.Implementations
                 throw new SoapFaultException(error.ErrorCode, "Invalid or empty National ID provided.", error.OffendingField, DateTime.UtcNow);
             }
 
-            // Fetch sender details from tblClientele
             var customer = await _kycContext.tblClientele
                 .FromSqlRaw(_configurations.CustomerLookupQuery, normalizedNationalID)
                 .Select(c => new ClienteleDto
@@ -109,9 +155,9 @@ namespace moneygram_api.Services.Implementations
                     City = c.City,
                     District = c.District,
                     Suburb = c.Suburb,
-                    NatID_Image = c.NatID_Image ?? Array.Empty<byte>(), 
-                    Img_Format = c.Img_Format ?? string.Empty, 
-                    ContentType = c.ContentType ?? string.Empty, 
+                    NatID_Image = c.NatID_Image ?? Array.Empty<byte>(),
+                    Img_Format = c.Img_Format ?? string.Empty,
+                    ContentType = c.ContentType ?? string.Empty,
                     AddDate = c.AddDate,
                     ModifiedDate = c.ModifiedDate,
                     Modification_Reason = c.Modification_Reason,
@@ -125,12 +171,24 @@ namespace moneygram_api.Services.Implementations
                 throw new SoapFaultException(error.ErrorCode, error.ErrorMessage, error.OffendingField, DateTime.UtcNow);
             }
 
-            // Fetch past receivers from SendTransactions
             var transactions = await _appContext.Database
                 .SqlQueryRaw<TransactionDto>(_configurations.TransactionsLookupQuery, normalizedNationalID)
                 .ToListAsync();
 
-            // Map sender info with null-safe handling
+            // Normalize country names in transactions
+            foreach (var transaction in transactions)
+            {
+                if (!string.IsNullOrEmpty(transaction.ReceiverCountry))
+                {
+                    transaction.ReceiverCountry = NormalizeCountryName(transaction.ReceiverCountry);
+                }
+            }
+
+            var lastFiveTransactions = transactions
+                .OrderByDescending(t => t.ProcessDate ?? DateTime.MinValue)
+                .Take(5)
+                .ToList();
+
             var senderInfo = new SenderInfo
             {
                 SenderFirstName = customer.FirstName ?? string.Empty,
@@ -139,59 +197,94 @@ namespace moneygram_api.Services.Implementations
                 SenderGender = Enum.TryParse(customer.Gender?.Trim().ToUpper(), out Gender gender) ? gender.ToString() : string.Empty,
                 SenderAddress = customer.Address ?? string.Empty,
                 SenderAddress2 = customer.Suburb ?? string.Empty,
+                SenderAddress3 = customer.District ?? string.Empty,
                 SenderCity = customer.City ?? string.Empty,
-                SenderState = customer.District ?? string.Empty,
-                SenderCountry = "ZWE",
+                SenderCountry = NormalizeCountryName("ZWE"), // Normalize "ZWE"
                 IdImage = customer.NatID_Image != null ? Convert.ToBase64String(customer.NatID_Image) : string.Empty,
                 ImgFormat = customer.Img_Format ?? string.Empty,
                 ContentType = customer.ContentType ?? string.Empty,
-                ReceiverInfo = transactions.Any() ? new ReceiverInfo() : null
+                SenderHomePhone = string.Empty,
+                FreqCustCardNumber = string.Empty,
+                ConsumerId = (int)customer.ID,
+                SenderBirthCountry = NormalizeCountryName("ZWE") // Normalize "ZWE"
             };
 
-            // Parse SenderDOB from the transaction
-            var senderDOBString = transactions.FirstOrDefault()?.SenderDOB;
+            var senderDOBString = lastFiveTransactions.FirstOrDefault()?.SenderDOB;
             if (DateTime.TryParse(senderDOBString, out var senderDOB))
             {
                 senderInfo.SenderDOBObject = senderDOB;
             }
             else
             {
-                senderInfo.SenderDOBObject = DateTime.MinValue; 
+                senderInfo.SenderDOBObject = DateTime.MinValue;
             }
 
+            // Deduplicate receivers based on key identifying fields
+            var receiverInfos = lastFiveTransactions
+                .GroupBy(t => new
+                {
+                    t.ReceiverFirstName,
+                    t.ReceiverMiddleName,
+                    t.ReceiverLastName,
+                    t.ReceiverCountry,
+                    t.ReceiverPhoneNumber,
+                    t.ReceiverPhotoIDNumber,
+                    t.ReceiverPhotoIDType
+                })
+                .Select(g => g.OrderByDescending(t => t.ProcessDate ?? DateTime.MinValue).First()) // Take the most recent transaction
+                .Select(t => new ReceiverInfo
+                {
+                    ReceiverFirstName = t.ReceiverFirstName ?? string.Empty,
+                    ReceiverMiddleName = t.ReceiverMiddleName ?? string.Empty,
+                    ReceiverLastName = t.ReceiverLastName ?? string.Empty,
+                    ReceiverAddress = t.ReceiverAddress1 ?? string.Empty,
+                    ReceiverAddress2 = t.ReceiverAddress2 ?? string.Empty,
+                    ReceiverCity = t.ReceiverCity ?? string.Empty,
+                    ReceiverCountry = t.ReceiverCountry ?? string.Empty,
+                    ReceiveCountry = t.ReceiverCountry ?? string.Empty,
+                    ReceiverPhone = t.ReceiverPhoneNumber ?? string.Empty,
+                    ReceiverPhotoIdNumber = t.ReceiverPhotoIDNumber ?? string.Empty,
+                    ReceiverPhotoIdType = t.ReceiverPhotoIDType ?? string.Empty,
+                    SendCurrency = t.SendCurrency ?? string.Empty,
+                    ReceiveCurrency = t.ReceiveCurrency ?? string.Empty,
+                    PayoutCurrency = t.ReceiveCurrency ?? string.Empty,
+                    SendAmount = t.SendAmount ?? 0m
+                })
+                .ToList();
 
-            // Map receiver info for each unique receiver from DTO
-            var receiverInfos = transactions.Select(t => new ReceiverInfo
-            {
-                ReceiverFirstName = t.ReceiverFirstName ?? string.Empty,
-                ReceiverMiddleName = t.ReceiverMiddleName ?? string.Empty,
-                ReceiverLastName = t.ReceiverLastName ?? string.Empty,
-                ReceiverAddress = t.ReceiverAddress1 ?? string.Empty,
-                ReceiverAddress2 = t.ReceiverAddress2 ?? string.Empty,
-                ReceiverCity = t.ReceiverCity ?? string.Empty,
-                ReceiverCountry = t.ReceiverCountry ?? string.Empty,
-                ReceiverPhone = t.ReceiverPhoneNumber ?? string.Empty,
-                ReceiverPhotoIdNumber = t.ReceiverPhotoIDNumber ?? string.Empty,
-                ReceiverPhotoIdType = t.ReceiverPhotoIDType ?? string.Empty,
-                SendCurrency = t.SendCurrency ?? string.Empty,
-                ReceiveCurrency = t.ReceiveCurrency ?? string.Empty,
-                PayoutCurrency = t.ReceiveCurrency ?? string.Empty,
-                SendAmount = t.SendAmount ?? 0m
-            }).ToList();
-
-            // Attach the first receiver
-            if (receiverInfos.Any())
-            {
-                senderInfo.ReceiverInfo = receiverInfos.First();
-            }
+            // Pair each unique receiver with sender info
+            var senderInfos = receiverInfos.Any()
+                ? receiverInfos.Select(r => new SenderInfo
+                {
+                    SenderFirstName = senderInfo.SenderFirstName,
+                    SenderMiddleName = senderInfo.SenderMiddleName,
+                    SenderLastName = senderInfo.SenderLastName,
+                    SenderGender = senderInfo.SenderGender,
+                    SenderAddress = senderInfo.SenderAddress,
+                    SenderAddress2 = senderInfo.SenderAddress2,
+                    SenderAddress3 = senderInfo.SenderAddress3,
+                    SenderCity = senderInfo.SenderCity,
+                    SenderCountry = senderInfo.SenderCountry,
+                    IdImage = senderInfo.IdImage,
+                    ImgFormat = senderInfo.ImgFormat,
+                    ContentType = senderInfo.ContentType,
+                    SenderHomePhone = senderInfo.SenderHomePhone,
+                    FreqCustCardNumber = senderInfo.FreqCustCardNumber,
+                    ConsumerId = senderInfo.ConsumerId,
+                    SenderBirthCountry = senderInfo.SenderBirthCountry,
+                    SenderDOBObject = senderInfo.SenderDOBObject,
+                    ReceiverInfo = r
+                }).ToList()
+                : new List<SenderInfo> { senderInfo }; // If no receivers, include sender info alone
 
             var response = new MoneyGramConsumerLookupResponse
             {
                 TimeStamp = DateTime.UtcNow,
                 Flags = 1,
-                SenderInfo = new List<SenderInfo> { senderInfo }
+                SenderInfo = senderInfos
             };
 
+            _logger.LogInformation("Successfully retrieved customer data for National ID: {NationalID} with {Count} unique receivers", normalizedNationalID, receiverInfos.Count);
             return response;
         }
     }
