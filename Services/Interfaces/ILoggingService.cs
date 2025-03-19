@@ -6,8 +6,14 @@ namespace moneygram_api.Services.Interfaces
     public interface ILoggingService
     {
         Task LogRequestAsync(RequestLog requestLog);
-        Task LogExceptionAsync(ExceptionLog exceptionLog);
         Task<RequestLog> GetRequestLogByIdAsync(int id);
         Task UpdateRequestLogAsync(RequestLog requestLog);
+        Task LogExceptionAsync(ExceptionLog exceptionLog);
+        Task LogMoneyGramXmlAsync(MoneyGramXmlLog xmlLog);
+        Task<MoneyGramXmlLog> GetMoneyGramXmlLogByIdAsync(int id);
+        Task<List<MoneyGramXmlLog>> GetMoneyGramXmlLogsAsync(
+            DateTime? startDate = null, 
+            DateTime? endDate = null, 
+            string operation = null);
     }
 }
