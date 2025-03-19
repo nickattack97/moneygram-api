@@ -8,16 +8,19 @@ using System;
 using System.Threading.Tasks;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using moneygram_api.Models;
 
 namespace moneygram_api.Services.Implementations
 {
     public class SaveRewards : ISaveRewards
     {
         private readonly IConfigurations _configurations;
+        private readonly SoapContext _soapContext;
 
-        public SaveRewards(IConfigurations configurations)
+        public SaveRewards(IConfigurations configurations, SoapContext soapContext)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<SaveRewardsResponse> Save(SaveRewardsRequestDTO request)
@@ -75,9 +78,12 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await client.ExecuteAsync(restRequest);
+            
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {

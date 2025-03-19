@@ -10,16 +10,19 @@ using RequestBody = moneygram_api.Models.ConsumerLookUpRequest.Body;
 using ResponseEnvelope = moneygram_api.Models.ConsumerLookUpResponse.Envelope;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using moneygram_api.Models;
 
 namespace moneygram_api.Services.Implementations
 {
     public class SendConsumerLookUp : ISendConsumerLookUp
     {
         private readonly IConfigurations _configurations;
+        private readonly SoapContext _soapContext;
 
-        public SendConsumerLookUp(IConfigurations configurations)
+        public SendConsumerLookUp(IConfigurations configurations, SoapContext soapContext)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<MoneyGramConsumerLookupResponse> Push(ConsumerLookUpRequestDTO request)
@@ -74,9 +77,11 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await client.ExecuteAsync(restRequest);
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {

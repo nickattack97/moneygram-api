@@ -11,6 +11,7 @@ using ResponseEnvelope = moneygram_api.Models.FeeLookUpResponse.Envelope;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
 using System.Linq;
+using moneygram_api.Models;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -18,11 +19,13 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly SoapContext _soapContext;
 
-        public FeeLookUp(IConfigurations configurations, IHttpContextAccessor httpContextAccessor)
+        public FeeLookUp(IConfigurations configurations, IHttpContextAccessor httpContextAccessor, SoapContext soapContext)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _httpContextAccessor = httpContextAccessor;
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<FeeLookUpResponse> FetchFeeLookUp(FeeLookUpRequestDTO request)
@@ -82,9 +85,12 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await client.ExecuteAsync(restRequest);
+            
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {

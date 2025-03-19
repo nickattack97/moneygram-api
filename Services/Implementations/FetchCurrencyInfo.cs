@@ -10,16 +10,20 @@ using ResponseEnvelope = moneygram_api.Models.CurrencyInfoResponse.Envelope;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
 using System.Linq;
+using moneygram_api.Models;
+
 
 namespace moneygram_api.Services.Implementations
 {
     public class FetchCurrencyInfo : IFetchCurrencyInfo
     {
         private readonly IConfigurations _configurations;
+        private readonly SoapContext _soapContext;
 
-        public FetchCurrencyInfo(IConfigurations configurations)
+        public FetchCurrencyInfo(IConfigurations configurations, SoapContext soapContext)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<CurrencyInfoResponse> Fetch()
@@ -53,6 +57,7 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -70,6 +75,8 @@ namespace moneygram_api.Services.Implementations
                 }
                 return res;
             });
+
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {

@@ -10,6 +10,7 @@ using RequestBody = moneygram_api.Models.SendReversalRequest.Body;
 using moneygram_api.DTOs;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using moneygram_api.Models;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -18,18 +19,21 @@ namespace moneygram_api.Services.Implementations
         private readonly IConfigurations _configurations;
         private readonly IDetailLookup _detailLookup;
         private readonly IHttpContextAccessor _httpContextAccessor;
-        private readonly IMGSendTransactionService _sendTransactionService; // New dependency
+        private readonly IMGSendTransactionService _sendTransactionService; 
+        private readonly SoapContext _soapContext;
 
         public SendReversal(
             IConfigurations configurations,
             IDetailLookup detailLookup,
             IHttpContextAccessor httpContextAccessor,
-            IMGSendTransactionService sendTransactionService) // Inject IMGSendTransactionService
+            IMGSendTransactionService sendTransactionService,
+            SoapContext soapContext) 
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _detailLookup = detailLookup ?? throw new ArgumentNullException(nameof(detailLookup));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             _sendTransactionService = sendTransactionService ?? throw new ArgumentNullException(nameof(sendTransactionService));
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<SendReversalResponse> Reverse(SendReversalRequestDTO request)
@@ -117,6 +121,7 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -129,6 +134,8 @@ namespace moneygram_api.Services.Implementations
                 }
                 return res;
             });
+            
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {

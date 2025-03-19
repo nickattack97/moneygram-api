@@ -10,6 +10,8 @@ using RequestBody = moneygram_api.Models.CodeTableRequest.Body;
 using ResponseEnvelope = moneygram_api.Models.CodeTableResponse.Envelope;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using moneygram_api.Models;
+
 
 namespace moneygram_api.Services.Implementations
 {
@@ -17,11 +19,13 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly IFetchCurrencyInfo _fetchCurrencyInfo;
+        private readonly SoapContext _soapContext;
 
-        public FetchCodeTable(IConfigurations configurations, IFetchCurrencyInfo fetchCurrencyInfo)
+        public FetchCodeTable(IConfigurations configurations, IFetchCurrencyInfo fetchCurrencyInfo, SoapContext soapContext)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _fetchCurrencyInfo = fetchCurrencyInfo ?? throw new ArgumentNullException(nameof(fetchCurrencyInfo));
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<CodeTableResponse> Fetch(CodeTableRequestDTO request)
@@ -61,6 +65,7 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -78,6 +83,8 @@ namespace moneygram_api.Services.Implementations
                 }
                 return res;
             });
+            
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {
