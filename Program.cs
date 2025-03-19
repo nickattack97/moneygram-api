@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using moneygram_api.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -132,6 +133,8 @@ builder.Services.AddScoped<IDetailLookup, DetailLookup>();
 // Register the ISendReversal service
 builder.Services.AddScoped<ISendReversal, SendReversal>();
 
+builder.Services.AddScoped<SoapContext>();
+
 // Configure CORS
 builder.Services.AddCors(options =>
 {
@@ -190,6 +193,7 @@ var app = builder.Build();
 app.UseHttpsRedirection();
 
 app.UseCors("AllowAnyOriginWithCredentials"); // Apply CORS policy here
+app.UseMiddleware<MoneyGramXmlLoggingMiddleware>();
 
 // Use the JWT Authentication Middleware
 app.UseMiddleware<JwtAuthenticationMiddleware>(); // Add the JWT authentication middleware here
