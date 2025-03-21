@@ -90,7 +90,7 @@ namespace moneygram_api.Middleware
                 string p when p.EndsWith("/api/sends/send-reversal") => "SendReversal",
                 string p when p.EndsWith("/api/sends/filtered-fee-lookup") => "FeeLookup",
                 string p when p.EndsWith("/api/sends/gffp") => "GFFP",
-                string p when p.EndsWith("/api/sends/code-table") => "CodeTable",
+                string p when p.EndsWith("/api/sends/filtered-code-table") => "CodeTable",
                 _ => "Unknown"
             };
         }
