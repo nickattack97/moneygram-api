@@ -30,6 +30,9 @@ public class CommitTransactionResponse
 
     [XmlElement(ElementName = "referenceNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReferenceNumber { get; set; }
+    
+    [XmlElement(ElementName = "transactionStatus", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+    public string? TransactionStatus { get; set; }
 
     [XmlElement(ElementName = "expectedDateOfDelivery", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public DateTime ExpectedDateOfDelivery { get; set; }

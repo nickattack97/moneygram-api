@@ -2,7 +2,6 @@ using moneygram_api.Models.CommitTransactionRequest;
 using moneygram_api.Models.CommitTransactionResponse;
 using moneygram_api.Services.Interfaces;
 using RestSharp;
-using System.Threading.Tasks;
 using moneygram_api.Settings;
 using RequestEnvelope = moneygram_api.Models.CommitTransactionRequest.Envelope;
 using ResponseEnvelope = moneygram_api.Models.CommitTransactionResponse.Envelope;
@@ -18,18 +17,20 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly SoapContext _soapContext;
+        private readonly IDetailLookup _detailLookup;
 
-        public CommitTransaction(IConfigurations configurations, SoapContext soapContext)
+        public CommitTransaction(IConfigurations configurations, SoapContext soapContext, IDetailLookup detailLookup)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
+            _detailLookup = detailLookup ?? throw new ArgumentNullException(nameof(detailLookup));
         }
 
         public async Task<CommitTransactionResponse> Commit(CommitRequestDTO request)
         {
             var options = new RestClientOptions(_configurations.BaseUrl)
             {
-                MaxTimeout = 30000, // Adjusted to a reasonable timeout (30 seconds)
+                Timeout = TimeSpan.FromMilliseconds(30000), // Timeout (30 seconds)
             };
 
             // Apply proxy settings from configurations
@@ -39,7 +40,7 @@ namespace moneygram_api.Services.Implementations
             var restRequest = new RestRequest(_configurations.Resource, Method.Post);
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#commitTransaction");
             restRequest.AddHeader("Content-Type", "application/xml");
-            restRequest.AddHeader("Cookie", "incap_ses_1018_2443955=H94QWuf5r2KVl27TyakgDtt1WWcAAAAAGEmZuENwG6HR8IHO3Z+w+g==; incap_ses_1021_2443955=UQqIIZRyhgQc589kSlIrDghuWGcAAAAAhfdSbPQaLfOnP48BUlPoJA==; nlbi_2443955=1rTMXGJcKWqxzeo5DQOeYgAAAAC2GJxMTQZ5Ec/5fuh3d4xW; visid_incap_2443955=2MrhAMFHS1izzAXJr0ZFVtuhD2cAAAAAQUIPAAAAAADXLrkPmKTaHmWdVzJQKR23");
+            restRequest.AddHeader("Cookie", "incap_ses_1018_2443955=SyYzAM4xd1oUKDXRyakgDt8JWGcAAAAAQYtntJhzk08U92hnA2tg2A==; nlbi_2443955=1rTMXGJcKWqxzeo5DQOeYgAAAAC2GJxMTQZ5Ec/5fuh3d4xW; visid_incap_2443955=2MrhAMFHS1izzAXJr0ZFVtuhD2cAAAAAQUIPAAAAAADXLrkPmKTaHmWdVzJQKR23");
 
             var envelope = new RequestEnvelope
             {
@@ -54,19 +55,67 @@ namespace moneygram_api.Services.Implementations
                         ClientSoftwareVersion = _configurations.ClientSoftwareVer,
                         ChannelType = "LOCATION",
                         ProductType = "SEND",
-                        TimeStamp = DateTime.UtcNow, // Use UTC for consistency
+                        TimeStamp = DateTime.UtcNow,
                         MgiTransactionSessionID = request.mgiTransactionSessionID
                     }
                 }
             };
 
             var body = envelope.ToString();
-             _soapContext.RequestXml = body;
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
-            var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
+            try
             {
-                var res = await client.ExecuteAsync(restRequest);
+                // First attempt to directly execute the commit transaction request
+                var response = await ExecuteCommitRequest(client, restRequest);
+                return response;
+            }
+            catch (BaseCustomException ex)
+            {
+                // If we got a service unavailable error, throw it immediately
+                if (ex.ErrorCode == 503)
+                {
+                    throw;
+                }
+
+                // For other errors, try to check the transaction status through detail lookup
+                try
+                {
+                    var detailLookupResponse = await _detailLookup.Lookup(request.mgiTransactionSessionID);
+                    
+                    // If the transaction is already committed, return the successful status
+                    if (detailLookupResponse.TransactionStatus.ToUpper() != "UNCOMMITTED")
+                    {
+                        return new CommitTransactionResponse
+                        {
+                            ReferenceNumber = detailLookupResponse.ReferenceNumber,
+                            TransactionStatus = detailLookupResponse.TransactionStatus,
+                            ExpectedDateOfDelivery = DateTime.Parse(detailLookupResponse.ExpectedDateOfDelivery),
+                            TransactionDateTime = detailLookupResponse.TimeStamp,
+                            DoCheckIn = detailLookupResponse.DoCheckIn,
+                            Flags = detailLookupResponse.Flags
+                        };
+                    }
+                    
+                    // If still uncommitted, rethrow the original exception
+                    throw;
+                }
+                catch (Exception lookupEx) when (!(lookupEx is BaseCustomException))
+                {
+                    // If the detail lookup also fails, throw the original exception
+                    throw ex;
+                }
+            }
+        }
+
+        private async Task<CommitTransactionResponse> ExecuteCommitRequest(RestClient client, RestRequest request)
+        {
+            // Use the retry helper with proper return type
+            var response = await RetryHelper.RetryOnExceptionAsync<RestResponse>(3, async () =>
+            {
+                var res = await client.ExecuteAsync(request);
+                
                 if (res.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
                 {
                     var errorResponse = ErrorDictionary.GetErrorResponse(503);
@@ -77,11 +126,12 @@ namespace moneygram_api.Services.Implementations
                         DateTime.UtcNow
                     );
                 }
+                
                 return res;
-            });
+            }, 15000); // 15-second initial delay
 
-            _soapContext.ResponseXml = response.Content;
-            
+            _soapContext.ResponseXml = response.Content ?? string.Empty;
+
             if (response.IsSuccessful)
             {
                 if (string.IsNullOrEmpty(response.Content))
