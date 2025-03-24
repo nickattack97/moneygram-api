@@ -11,7 +11,6 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly ILogger<SignatureVerificationService> _logger;
-        private const int MaxTimestampDifferenceMinutes = 65;
         private readonly Lazy<RSA> _cachedRsa;
 
         public SignatureVerificationService(IConfigurations configurations, ILogger<SignatureVerificationService> logger)
@@ -27,47 +26,35 @@ namespace moneygram_api.Services.Implementations
             });
         }
 
-        public bool Verify(string signatureHeader, long currentTimestamp, string destinationHost, string body)
+        public bool Verify(string signatureHeader, long headerTimestamp, string destinationHost, string body)
         {
             try
             {
                 _logger.LogInformation($"Starting signature verification process for host: {destinationHost}");
 
                 // Step 1: Parse the signature header
-                var (headerTimestamp, signature) = ParseSignatureHeader(signatureHeader);
-                _logger.LogDebug($"Parsed header - Timestamp: {headerTimestamp}, Signature length: {signature?.Length ?? 0}");
+                var (parsedTimestamp, signature) = ParseSignatureHeader(signatureHeader);
+                _logger.LogDebug($"Parsed header - Timestamp: {parsedTimestamp}, Signature length: {signature?.Length ?? 0}");
 
-                if (headerTimestamp == 0 || string.IsNullOrEmpty(signature))
+                if (parsedTimestamp != headerTimestamp || string.IsNullOrEmpty(signature))
                 {
-                    _logger.LogWarning("Invalid signature header format");
+                    _logger.LogWarning("Invalid signature header format or timestamp mismatch");
                     return false;
                 }
 
-                // Step 2: Verify request freshness
-                var timestampDifference = Math.Abs(currentTimestamp - headerTimestamp);
-                var maxDifferenceSeconds = MaxTimestampDifferenceMinutes * 60;
-                
-                _logger.LogDebug($"Timestamp difference: {timestampDifference}s (max allowed: {maxDifferenceSeconds}s)");
-                
-                if (timestampDifference > maxDifferenceSeconds)
-                {
-                    _logger.LogWarning($"Request too old. Difference: {timestampDifference}s");
-                    return false;
-                }
-
-                // Step 3: Prepare the payload string
+                // Step 2: Prepare the payload string
                 var payloadToVerify = $"{headerTimestamp}.{destinationHost}.{body}";
                 _logger.LogDebug($"Full payload to verify: {payloadToVerify}");
 
-                // Step 4: Convert payload to bytes
+                // Step 3: Convert payload to bytes
                 var payloadBytes = Encoding.UTF8.GetBytes(payloadToVerify);
                 _logger.LogDebug($"Payload bytes length: {payloadBytes.Length}");
 
-                // Step 5: Decode the base64 signature
+                // Step 4: Decode the base64 signature
                 var signatureBytes = Convert.FromBase64String(signature);
                 _logger.LogDebug($"Signature bytes length: {signatureBytes.Length}");
 
-                // Step 6: Verify the signature
+                // Step 5: Verify the signature using RSA
                 var isValid = _cachedRsa.Value.VerifyData(
                     payloadBytes,
                     signatureBytes,
@@ -84,7 +71,7 @@ namespace moneygram_api.Services.Implementations
             }
         }
 
-        private (long timestamp, string signature) ParseSignatureHeader(string header)
+        public (long timestamp, string signature) ParseSignatureHeader(string header)
         {
             if (string.IsNullOrEmpty(header))
                 return (0, null);
@@ -93,26 +80,19 @@ namespace moneygram_api.Services.Implementations
             if (parts.Length != 2)
                 return (0, null);
 
-            var timestamp = ParseTimestamp(parts[0]);
-            var signature = ParseSignature(parts[1]);
+            long timestamp = 0;
+            string signature = null;
+
+            foreach (var part in parts)
+            {
+                var trimmedPart = part.Trim();
+                if (trimmedPart.StartsWith("t="))
+                    timestamp = long.TryParse(trimmedPart.Substring(2), out var ts) ? ts : 0;
+                else if (trimmedPart.StartsWith("s="))
+                    signature = trimmedPart.Substring(2);
+            }
 
             return (timestamp, signature);
-        }
-
-        private long ParseTimestamp(string timestampPart)
-        {
-            if (!timestampPart.StartsWith("t="))
-                return 0;
-
-            return long.TryParse(timestampPart.Substring(2), out var timestamp) ? timestamp : 0;
-        }
-
-        private string ParseSignature(string signaturePart)
-        {
-            if (!signaturePart.StartsWith("s="))
-                return null;
-
-            return signaturePart.Substring(2);
         }
     }
 }

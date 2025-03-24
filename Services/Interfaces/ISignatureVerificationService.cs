@@ -2,6 +2,7 @@ namespace moneygram_api.Services.Interfaces
 {
     public interface ISignatureVerificationService
     {
-        bool Verify(string signatureHeader, long unixTimeInSeconds, string destinationHost, string body);
+        (long timestamp, string signature) ParseSignatureHeader(string header);
+        bool Verify(string signature, long headerTimestamp, string destinationHost, string body);
     }
 }
