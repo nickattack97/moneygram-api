@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using moneygram_api.Models;
 using moneygram_api.Settings;
 using Newtonsoft.Json;
+using Microsoft.AspNetCore.Http;
 
 namespace moneygram_api.Controllers
 {
@@ -56,7 +57,7 @@ namespace moneygram_api.Controllers
                 var requestBody = await new StreamReader(Request.Body).ReadToEndAsync();
                 _logger.LogInformation("Received Webhook Payload: {RequestBody}", requestBody);
 
-                // Step 3: Validate the signature
+                // Step 3: Validate the signature header
                 if (!Request.Headers.ContainsKey("Signature"))
                 {
                     _logger.LogWarning("Missing Signature header");
@@ -64,53 +65,70 @@ namespace moneygram_api.Controllers
                 }
 
                 var signatureHeader = Request.Headers["Signature"].ToString();
-                var timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-                var destinationHost = Request.Host.ToString();
+                var (headerTimestamp, signature) = _signatureVerificationService.ParseSignatureHeader(signatureHeader);
 
-                if (!_signatureVerificationService.Verify(signatureHeader, timestamp, destinationHost, requestBody))
+                if (headerTimestamp == 0 || string.IsNullOrEmpty(signature))
                 {
-                    _logger.LogWarning("Invalid Signature");
+                    _logger.LogWarning("Invalid signature header format: {SignatureHeader}", signatureHeader);
+                    return BadRequest("Invalid signature header format");
+                }
+
+                // Step 4: Check request freshness (65-minute window)
+                var currentTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                if (Math.Abs(currentTimestamp - headerTimestamp) > 65 * 60) // 65 minutes in seconds
+                {
+                    _logger.LogWarning("Request too old. Header timestamp: {HeaderTimestamp}, Current timestamp: {CurrentTimestamp}, SignatureHeader: {SignatureHeader}",
+                        headerTimestamp, currentTimestamp, signatureHeader);
+                    return BadRequest("Request too old");
+                }
+
+                // Step 5: Verify the signature
+                var destinationHost = Request.Host.ToString();
+                if (!_signatureVerificationService.Verify(signatureHeader, headerTimestamp, destinationHost, requestBody))
+                {
+                    _logger.LogWarning("Invalid Signature: {SignatureHeader}, Headers: {Headers}",
+                        signatureHeader, SerializeHeaders(Request.Headers));
                     return BadRequest("Invalid Signature");
                 }
 
-                // Step 4: Deserialize the payload
+                // Step 6: Deserialize the payload
                 var payload = JsonConvert.DeserializeObject<TransactionStatusEventPayload>(requestBody);
                 if (payload == null)
                 {
-                    _logger.LogWarning("Invalid Payload");
-
+                    _logger.LogWarning("Invalid Payload, SignatureHeader: {SignatureHeader}, Headers: {Headers}",
+                        signatureHeader, SerializeHeaders(Request.Headers));
                     var errorResponse = new
                     {
-                        ErrorCode = "INVALID_SIGNATURE",
-                        ErrorMessage = "The provided signature is invalid",
-                        Details = new
-                        {
-                            ReceivedSignature = signatureHeader,
-                            ExpectedFormat = "t=<timestamp>,s=<base64_signature>",
-                        },
+                        ErrorCode = "INVALID_PAYLOAD",
+                        ErrorMessage = "The provided payload is invalid",
+                        Details = new { ReceivedPayload = requestBody },
                         TimeStamp = DateTime.UtcNow
                     };
                     return BadRequest(errorResponse);
                 }
 
-                // Step 5: Process the event asynchronously
+                // Step 7: Process the event asynchronously
                 await ProcessTransactionStatusEvent(payload);
 
-                // Step 6: Return success response
+                // Step 8: Return success response
                 return Ok();
             }
             catch (Exception ex)
             {
                 await LogExceptionAsync(ex, "WebhookController.HandleTransactionStatusEvent", GetClientIp());
-                return StatusCode((int)HttpStatusCode.InternalServerError, new { ErrorCode = "INTERNAL_ERROR", ErrorMessage = "Internal Server Error" });
+                return StatusCode((int)HttpStatusCode.InternalServerError, new
+                {
+                    ErrorCode = "INTERNAL_ERROR",
+                    ErrorMessage = ex.InnerException?.Message ?? ex.Message
+                });
             }
         }
 
         private async Task ProcessTransactionStatusEvent(TransactionStatusEventPayload payload)
         {
-            _logger.LogInformation($"Processing Event: {payload.EventId}, Status: {payload.EventPayload.TransactionStatus}");
-            // Notification business logic here to process the event
-            _logger.LogInformation($"Event Processed: {payload.EventId}");
+            _logger.LogInformation("Processing Event: {EventId}, Status: {TransactionStatus}", payload.EventId, payload.EventPayload.TransactionStatus);
+            // Add your notification or business logic here to process the event
+            _logger.LogInformation("Event Processed: {EventId}", payload.EventId);
         }
 
         private string GetClientIp()
@@ -123,6 +141,7 @@ namespace moneygram_api.Controllers
 
         private async Task LogExceptionAsync(Exception ex, string actionName, string clientIp)
         {
+            var signatureHeader = HttpContext.Request.Headers["Signature"].ToString();
             var exceptionLog = new ExceptionLog
             {
                 Username = "Webhook", // No authenticated user context in webhook
@@ -136,7 +155,14 @@ namespace moneygram_api.Controllers
             };
 
             await _loggingService.LogExceptionAsync(exceptionLog);
-            _logger.LogError(ex, $"Error in {actionName} from IP: {clientIp}");
+            _logger.LogError(ex, "Error in {ActionName} from IP: {ClientIp}, SignatureHeader: {SignatureHeader}, Headers: {Headers}",
+                actionName, clientIp, signatureHeader, SerializeHeaders(HttpContext.Request.Headers));
+        }
+
+        private string SerializeHeaders(IHeaderDictionary headers)
+        {
+            var headerStrings = headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}");
+            return string.Join("; ", headerStrings);
         }
     }
 }
