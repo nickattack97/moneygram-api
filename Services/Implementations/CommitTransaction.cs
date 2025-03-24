@@ -111,7 +111,6 @@ namespace moneygram_api.Services.Implementations
 
         private async Task<CommitTransactionResponse> ExecuteCommitRequest(RestClient client, RestRequest request)
         {
-            // Use the retry helper with proper return type
             var response = await RetryHelper.RetryOnExceptionAsync<RestResponse>(3, async () =>
             {
                 var res = await client.ExecuteAsync(request);
