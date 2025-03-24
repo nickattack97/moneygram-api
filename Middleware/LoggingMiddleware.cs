@@ -16,6 +16,7 @@ namespace moneygram_api.Middleware
         private readonly RequestDelegate _next;
         private readonly ILogger<LoggingMiddleware> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
+        private const string WebhookPath = "/sandbox/cbz-bank/moneygram/webhook_status_events";
 
         public LoggingMiddleware(RequestDelegate next, ILogger<LoggingMiddleware> logger, IServiceScopeFactory serviceScopeFactory)
         {
@@ -26,82 +27,114 @@ namespace moneygram_api.Middleware
 
         public async Task Invoke(HttpContext context)
         {
-            var requestLogId = await LogRequest(context);
+            var isWebhookRequest = context.Request.Path.Equals(WebhookPath, StringComparison.OrdinalIgnoreCase);
+            var requestLogId = isWebhookRequest ? await LogWebhookRequest(context) : await LogRequest(context);
 
             var originalBodyStream = context.Response.Body;
-            using (var responseBody = new MemoryStream())
-            {
-                context.Response.Body = responseBody;
+            using var responseBody = new MemoryStream();
+            context.Response.Body = responseBody;
 
-                try
+            try
+            {
+                await _next(context);
+                if (isWebhookRequest)
                 {
-                    await _next(context);
+                    await LogWebhookResponse(context, requestLogId);
+                }
+                else
+                {
                     await LogResponse(context, requestLogId);
                 }
-                catch (Exception ex)
-                {
-                    await LogException(context, ex);
-                    throw;
-                }
-                finally
-                {
-                    await responseBody.CopyToAsync(originalBodyStream);
-                }
             }
+            catch (Exception ex)
+            {
+                await LogException(context, ex);
+                throw;
+            }
+            finally
+            {
+                await responseBody.CopyToAsync(originalBodyStream);
+            }
+        }
+
+        private async Task<string> ReadRequestBody(HttpContext context)
+        {
+            context.Request.EnableBuffering();
+            if (context.Request.ContentLength > 0 && context.Request.Body.CanSeek)
+            {
+                using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, true, 1024, true);
+                var body = await reader.ReadToEndAsync();
+                context.Request.Body.Position = 0;
+                return body;
+            }
+            return string.Empty;
+        }
+
+        private string SerializeHeaders(IHeaderDictionary headers)
+        {
+            var headerStrings = headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}");
+            return string.Join("; ", headerStrings);
         }
 
         private async Task<int> LogRequest(HttpContext context)
         {
-            context.Request.EnableBuffering();
-            var request = context.Request;
-
-            var requestBody = string.Empty;
-
-            if (request.ContentLength > 0 && request.Body.CanSeek)
-            {
-                using (var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true))
-                {
-                    requestBody = await reader.ReadToEndAsync();
-                    request.Body.Position = 0;
-                }
-            }
-
+            var requestBody = await ReadRequestBody(context);
             var username = context.Items["Username"]?.ToString() ?? "Anonymous";
             var originIp = GetClientIp(context);
+            var request = context.Request;
 
-            var logDetails = new
+            var requestLog = new RequestLog
             {
                 Username = username,
                 HttpMethod = request.Method,
                 Url = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}",
-                Headers = request.Headers,
-                Body = requestBody,
+                Headers = SerializeHeaders(request.Headers), // Properly serialize headers
+                RequestBody = requestBody,
                 Device = request.Headers["User-Agent"],
                 Origin = originIp,
                 RequestTime = DateTime.Now
             };
 
-            _logger.LogInformation("Incoming Request: {@LogDetails}", logDetails);
+            _logger.LogInformation("Incoming Request: Username={Username}, Method={HttpMethod}, Url={Url}, Origin={Origin}",
+                username, request.Method, requestLog.Url, originIp);
 
-            using (var scope = _serviceScopeFactory.CreateScope())
+            using var scope = _serviceScopeFactory.CreateScope();
+            var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
+            await loggingService.LogRequestAsync(requestLog);
+            return requestLog.Id;
+        }
+
+        private async Task<int> LogWebhookRequest(HttpContext context)
+        {
+            var requestBody = await ReadRequestBody(context);
+            var originIp = GetClientIp(context);
+            var request = context.Request;
+
+            // Extract the Signature header
+            var signatureHeader = request.Headers["Signature"].ToString();
+            if (string.IsNullOrEmpty(signatureHeader))
             {
-                var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
-
-                var requestLog = new RequestLog
-                {
-                    Username = username,
-                    HttpMethod = request.Method,
-                    Url = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}",
-                    Headers = request.Headers.ToString(),
-                    RequestBody = requestBody,
-                    Device = request.Headers["User-Agent"],
-                    Origin = originIp,
-                    RequestTime = DateTime.Now
-                };
-
-                await loggingService.LogRequestAsync(requestLog);
-                return requestLog.Id;
+                _logger.LogWarning("Signature header is missing for webhook request");
             }
+
+            var webhookLog = new WebhookLog
+            {
+                HttpMethod = request.Method,
+                Url = $"{request.Scheme}://{request.Host}{request.Path}{request.QueryString}",
+                Headers = SerializeHeaders(request.Headers), // Properly serialize headers
+                RequestBody = requestBody,
+                Device = request.Headers["User-Agent"],
+                Origin = originIp,
+                RequestTime = DateTime.Now
+            };
+
+            _logger.LogInformation("Incoming Webhook Request: Method={HttpMethod}, Url={Url}, Origin={Origin}, SignatureHeader={SignatureHeader}",
+                request.Method, webhookLog.Url, originIp, signatureHeader);
+
+            using var scope = _serviceScopeFactory.CreateScope();
+            var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
+            await loggingService.LogWebhookRequestAsync(webhookLog);
+            return webhookLog.Id;
         }
 
         private async Task LogResponse(HttpContext context, int requestLogId)
@@ -113,33 +146,43 @@ namespace moneygram_api.Middleware
             var username = context.Items["Username"]?.ToString() ?? "Anonymous";
             var originIp = GetClientIp(context);
 
-            var logDetails = new
+            _logger.LogInformation("Outgoing Response: Username={Username}, Method={HttpMethod}, Url={Url}, StatusCode={StatusCode}, Origin={Origin}",
+                username, context.Request.Method, $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}",
+                context.Response.StatusCode, originIp);
+
+            using var scope = _serviceScopeFactory.CreateScope();
+            var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
+            var requestLog = await loggingService.GetRequestLogByIdAsync(requestLogId);
+            if (requestLog != null)
             {
-                Username = username,
-                HttpMethod = context.Request.Method,
-                Url = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}",
-                StatusCode = context.Response.StatusCode,
-                ResponseBody = responseBody,
-                Device = context.Request.Headers["User-Agent"],
-                Origin = originIp,
-                ResponseTime = DateTime.Now
-            };
+                requestLog.ResponseBody = responseBody ?? string.Empty;
+                requestLog.StatusCode = context.Response.StatusCode;
+                requestLog.ResponseTime = DateTime.Now;
+                await loggingService.UpdateRequestLogAsync(requestLog);
+            }
+        }
 
-            _logger.LogInformation("Outgoing Response: {@LogDetails}", logDetails);
+        private async Task LogWebhookResponse(HttpContext context, int webhookLogId)
+        {
+            context.Response.Body.Seek(0, SeekOrigin.Begin);
+            var responseBody = await new StreamReader(context.Response.Body).ReadToEndAsync();
+            context.Response.Body.Seek(0, SeekOrigin.Begin);
 
-            using (var scope = _serviceScopeFactory.CreateScope())
+            var originIp = GetClientIp(context);
+
+            _logger.LogInformation("Outgoing Webhook Response: Method={HttpMethod}, Url={Url}, StatusCode={StatusCode}, Origin={Origin}",
+                context.Request.Method, $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}",
+                context.Response.StatusCode, originIp);
+
+            using var scope = _serviceScopeFactory.CreateScope();
+            var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
+            var webhookLog = await loggingService.GetWebhookLogByIdAsync(webhookLogId);
+            if (webhookLog != null)
             {
-                var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
-
-                var requestLog = await loggingService.GetRequestLogByIdAsync(requestLogId);
-                if (requestLog != null)
-                {
-                    requestLog.ResponseBody = responseBody ?? string.Empty;
-                    requestLog.StatusCode = context.Response.StatusCode;
-                    requestLog.ResponseTime = DateTime.Now;
-
-                    await loggingService.UpdateRequestLogAsync(requestLog);
-                }
+                webhookLog.ResponseBody = responseBody ?? string.Empty;
+                webhookLog.StatusCode = context.Response.StatusCode;
+                webhookLog.ResponseTime = DateTime.Now;
+                await loggingService.UpdateWebhookLogAsync(webhookLog);
             }
         }
 
@@ -148,10 +191,10 @@ namespace moneygram_api.Middleware
             var username = context.Items["Username"]?.ToString() ?? "Anonymous";
             var originIp = GetClientIp(context);
 
-            var logDetails = new
+            var exceptionLog = new ExceptionLog
             {
                 Username = username,
-                Exception = ex.Message,
+                ExceptionMessage = ex.Message,
                 InnerExceptionMessage = ex.InnerException?.Message,
                 StackTrace = ex.StackTrace,
                 HttpMethod = context.Request.Method,
@@ -160,26 +203,12 @@ namespace moneygram_api.Middleware
                 Timestamp = DateTime.Now
             };
 
-            _logger.LogError("Exception occurred: {@LogDetails}", logDetails);
+            _logger.LogError(ex, "Exception occurred: Username={Username}, Method={HttpMethod}, Url={Url}, Origin={Origin}",
+                username, context.Request.Method, exceptionLog.Url, originIp);
 
-            using (var scope = _serviceScopeFactory.CreateScope())
-            {
-                var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
-
-                var exceptionLog = new ExceptionLog
-                {
-                    Username = username,
-                    ExceptionMessage = ex.Message,
-                    InnerExceptionMessage = ex.InnerException?.Message,
-                    StackTrace = ex.StackTrace,
-                    HttpMethod = context.Request.Method,
-                    Url = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.Path}{context.Request.QueryString}",
-                    Origin = originIp,
-                    Timestamp = DateTime.Now
-                };
-
-                await loggingService.LogExceptionAsync(exceptionLog);
-            }
+            using var scope = _serviceScopeFactory.CreateScope();
+            var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
+            await loggingService.LogExceptionAsync(exceptionLog);
         }
 
         private string GetClientIp(HttpContext context)
