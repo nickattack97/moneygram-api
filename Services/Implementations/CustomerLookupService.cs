@@ -184,9 +184,9 @@ namespace moneygram_api.Services.Implementations
                 }
             }
 
-            var lastFiveTransactions = transactions
+            var mostRecentTransactions = transactions
                 .OrderByDescending(t => t.ProcessDate ?? DateTime.MinValue)
-                .Take(5)
+                .Take(10)
                 .ToList();
 
             var senderInfo = new SenderInfo
@@ -209,7 +209,7 @@ namespace moneygram_api.Services.Implementations
                 SenderBirthCountry = NormalizeCountryName("ZWE") // Normalize "ZWE"
             };
 
-            var senderDOBString = lastFiveTransactions.FirstOrDefault()?.SenderDOB;
+            var senderDOBString = mostRecentTransactions.FirstOrDefault()?.SenderDOB;
             if (DateTime.TryParse(senderDOBString, out var senderDOB))
             {
                 senderInfo.SenderDOBObject = senderDOB;
@@ -220,7 +220,7 @@ namespace moneygram_api.Services.Implementations
             }
 
             // Deduplicate receivers based on key identifying fields
-            var receiverInfos = lastFiveTransactions
+            var receiverInfos = mostRecentTransactions
                 .GroupBy(t => new
                 {
                     t.ReceiverFirstName,
