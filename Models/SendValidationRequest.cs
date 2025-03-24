@@ -82,6 +82,12 @@ public class SendValidationRequest
     [XmlElement(ElementName = "senderCity", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderCity { get; set; }
 
+    [XmlElement(ElementName = "senderState", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? SenderState { get; set; }
+
+    [XmlElement(ElementName = "senderZipCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? SenderZipCode { get; set; }
+
     [XmlElement(ElementName = "senderCountry", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderCountry { get; set; }
 
@@ -190,6 +196,15 @@ public class SendValidationRequest
 
     [XmlElement(ElementName = "senderCitizenshipCountry", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderCitizenshipCountry { get; set; }
+
+   [XmlElement(ElementName = "senderPhotoIdExpirationMonth", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string SenderPhotoIdExpirationMonth { get; set; }
+
+    [XmlElement(ElementName = "senderPhotoIdExpirationYear", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string SenderPhotoIdExpirationYear { get; set; }
+
+    [XmlElement(ElementName = "senderPhotoIdExpirationDay", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string SenderPhotoIdExpirationDay { get; set; }
 
     [XmlElement(ElementName = "senderTransactionSMSNotificationOptIn", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public bool SenderTransactionSMSNotificationOptIn { get; set; }

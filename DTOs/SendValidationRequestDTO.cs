@@ -17,6 +17,8 @@ namespace moneygram_api.DTOs
         public string SenderLastName { get; set; }
         public string SenderAddress { get; set; }
         public string SenderAddress2 { get; set; }
+        public string? SenderState { get; set; }
+        public string? SenderZipCode { get; set; }
         public string SenderCity { get; set; }
         public string SenderCountry { get; set; }
         public string SenderHomePhone { get; set; }
@@ -31,12 +33,13 @@ namespace moneygram_api.DTOs
         public string ReceiverPhoneCountryCode { get; set; }
         public string SenderPhotoIdType { get; set; }
         public string SenderPhotoIdNumber { get; set; }
+        public DateTime? SenderPhotoIdExpiryDate { get; set; }
         public string SenderPhotoIdCountry { get; set; }
         public string SenderLegalIdType { get; set; }
         public string SenderLegalIdNumber { get; set; }
         public DateTime SenderDOB { get; set; }
         public string SenderOccupation { get; set; }
-        public string SenderBirthCountry { get; set; }
+        public string? SenderBirthCountry { get; set; }
         public string SenderLegalIdIssueCountry { get; set; }
         public string SenderMobilePhone { get; set; }
         public string SenderMobilePhoneCountryCode { get; set; }
