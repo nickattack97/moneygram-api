@@ -225,6 +225,8 @@ namespace moneygram_api.Services.Implementations
             existing.SenderAddress1 = UpdateIfNull(existing.SenderAddress1, transaction.SenderAddress1);
             existing.SenderAddress2 = UpdateIfNull(existing.SenderAddress2, transaction.SenderAddress2);
             existing.SenderAddress3 = UpdateIfNull(existing.SenderAddress3, transaction.SenderAddress3);
+            existing.SenderState = UpdateIfNull(existing.SenderState, transaction.SenderState);
+            existing.SenderZipCode = UpdateIfNull(existing.SenderZipCode, transaction.SenderZipCode);
             existing.SenderCity = UpdateIfNull(existing.SenderCity, transaction.SenderCity);
             existing.SenderCountry = UpdateIfNull(existing.SenderCountry, transaction.SenderCountry);
             existing.OriginatingCountry = UpdateIfNull(existing.OriginatingCountry, transaction.SenderCountry);
@@ -294,12 +296,16 @@ namespace moneygram_api.Services.Implementations
                 SenderDOB = transaction.SenderDOB,
                 SenderPhotoIDType = transaction.SenderPhotoIdType,
                 SenderPhotoIDNumber = transaction.SenderPhotoIdNumber,
+                SenderPhotoIDCountry = transaction.SenderPhotoIdCountry,
                 SenderAddress1 = transaction.SenderAddress1,
                 SenderAddress2 = transaction.SenderAddress2,
                 SenderAddress3 = transaction.SenderAddress3,
                 SenderCity = transaction.SenderCity,
+                SenderCountryOfBirth = transaction.SenderBirthCountry,
+                SenderState = string.IsNullOrEmpty(transaction.SenderState) ? null : transaction.SenderState,
+                SenderZipCode = string.IsNullOrEmpty(transaction.SenderZipCode) ? null : transaction.SenderZipCode,
                 SenderCountry = transaction.SenderCountry,
-                OriginatingCountry = transaction.SenderCountry,
+                OriginatingCountry = "ZWE",
                 SenderPhoneNumber = transaction.SenderPhoneNumber,
                 SendCurrency = "USD",
                 ReceiveCurrency = transaction.ReceiveCurrency,
