@@ -57,7 +57,21 @@ namespace moneygram_api.Services.Background
 
                         // Fetch and update CodeTable
                         var codeTableResponse = await codeTableService.Fetch(new DTOs.CodeTableRequestDTO { AgentAllowedOnly = false });
+                        
                         var codeVer = codeTableResponse.Version;
+
+                         var stateProvinceInfo = codeTableResponse.StateProvinceInfo.Select(spi => new StateProvinceInfoEntity
+                        {
+                            CountryCode = spi.CountryCode,
+                            StateProvinceCode = spi.StateProvinceCode,
+                            StateProvinceName = spi.StateProvinceName,
+                            Version = codeVer,
+                            LastUpdated = DateTime.Now
+                        }).ToList();
+
+                        dbContext.StatesProvincesInfo.RemoveRange(dbContext.StatesProvincesInfo);
+                        dbContext.StatesProvincesInfo.AddRange(stateProvinceInfo);
+
                         var codeTables = codeTableResponse.CountryCurrencyInfo.Select(cci => new CodeTable
                         {
                             CountryCode = cci.CountryCode,
