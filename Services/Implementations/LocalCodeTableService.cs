@@ -20,6 +20,16 @@ namespace moneygram_api.Services.Implementations
 
         public async Task<CodeTableResponse> GetCodeTableAsync(CodeTableRequestDTO request)
         {
+            var stateProvinceInfo = await _dbContext.StatesProvincesInfo
+            .OrderBy(sp => sp.StateProvinceName)
+            .Select(sp => new StateProvinceInfo
+            {
+                CountryCode = sp.CountryCode,
+                StateProvinceCode = sp.StateProvinceCode,
+                StateProvinceName = sp.StateProvinceName
+            })
+            .ToListAsync();
+            
             var codeTables = await _dbContext.CodeTables
                 .Where(ct => !request.AgentAllowedOnly || ct.IndicativeRateAvailable)
                 .Select(ct => new CountryCurrencyInfo
@@ -45,7 +55,8 @@ namespace moneygram_api.Services.Implementations
                 TimeStamp = DateTime.Now,
                 Flags = codeTables.Count,
                 Version = "1.0",
-                CountryCurrencyInfo = codeTables
+                CountryCurrencyInfo = codeTables,
+                StateProvinceInfo = stateProvinceInfo
             };
         }
 
@@ -70,13 +81,25 @@ namespace moneygram_api.Services.Implementations
                     AgentManaged = ct.AgentManaged
                 }).ToListAsync();
 
+            var stateProvinceInfo = await _dbContext.StatesProvincesInfo
+                    .Where(sp => sp.CountryCode == request.CountryCode)
+                    .OrderBy(sp => sp.StateProvinceName)
+                    .Select(sp => new StateProvinceInfo
+                    {
+                        CountryCode = sp.CountryCode,
+                        StateProvinceCode = sp.StateProvinceCode,
+                        StateProvinceName = sp.StateProvinceName
+                    })
+                    .ToListAsync();
+
             return new CodeTableResponse
             {
                 DoCheckIn = false,
                 TimeStamp = DateTime.Now,
                 Flags = codeTables.Count,
                 Version = "1.0",
-                CountryCurrencyInfo = codeTables
+                CountryCurrencyInfo = codeTables,
+                StateProvinceInfo = stateProvinceInfo
             };
         }
     }

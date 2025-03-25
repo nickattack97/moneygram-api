@@ -13,6 +13,7 @@ namespace moneygram_api.Data
         public DbSet<CodeTable> CodeTables { get; set; }
         public DbSet<CountryInfoEntity> CountriesInfo { get; set; }
         public DbSet<CurrencyInfoEntity> CurrencyInfo { get; set; }
+        public DbSet<StateProvinceInfoEntity> StatesProvincesInfo { get; set; }
         public DbSet<MoneyGramXmlLog> MoneyGramXmlLogs { get; set; }
         public DbSet<WebhookLog> WebhookLogs { get; set; } 
 
@@ -44,6 +45,7 @@ namespace moneygram_api.Data
             modelBuilder.Entity<CodeTable>().ToTable("CodeTables");
             modelBuilder.Entity<CountryInfoEntity>().ToTable("CountriesInfo");
             modelBuilder.Entity<CurrencyInfoEntity>().ToTable("CurrencyInfo");
+            modelBuilder.Entity<StateProvinceInfoEntity>().ToTable("StatesProvincesInfo");
             modelBuilder.Entity<WebhookLog>().ToTable("WebhookLogs"); 
         }
     }

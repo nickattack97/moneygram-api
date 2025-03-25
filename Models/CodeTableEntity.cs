@@ -52,4 +52,14 @@ namespace moneygram_api.Models
         public string Version { get; set; }
         public DateTime LastUpdated { get; set; }
     }
+
+    public class StateProvinceInfoEntity
+    {
+        public int Id { get; set; }
+        public string CountryCode { get; set; }
+        public string StateProvinceCode { get; set; }
+        public string StateProvinceName { get; set; }
+        public string Version { get; set; }
+        public DateTime LastUpdated { get; set; }
+    }
 }
