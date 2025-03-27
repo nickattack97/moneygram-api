@@ -27,7 +27,6 @@ namespace moneygram_api.Services.Implementations
             return await _context.SendTransactions.ToListAsync();
         }
 
-         // New method to fetch transactions by a specific user (teller)
         public async Task<List<SendTransaction>> GetTransactionsByUserAsync(string username = null)
         {
             // If no username is provided, get the current user from the context
@@ -48,7 +47,6 @@ namespace moneygram_api.Services.Implementations
                 .ToListAsync();
         }
 
-        // New method to get transactions by the current authenticated user
         public async Task<List<SendTransaction>> GetMyTransactionsAsync()
         {
             string username = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
@@ -212,16 +210,20 @@ namespace moneygram_api.Services.Implementations
         {
             existing.SessionID = UpdateIfNull(existing.SessionID, transaction.SessionID);
             existing.ReferenceNumber = UpdateIfNull(existing.ReferenceNumber, transaction.ReferenceNumber);
+            existing.RewardsNumber = UpdateIfNull(existing.RewardsNumber, transaction.RewardsNumber);
 
             existing.SenderFirstName = UpdateIfNull(existing.SenderFirstName, transaction.SenderFirstName);
             existing.SenderMiddleName = UpdateIfNull(existing.SenderMiddleName, transaction.SenderMiddleName);
             existing.SenderLastName = UpdateIfNull(existing.SenderLastName, transaction.SenderLastName);
-            existing.Sender = ConcatenateNames(existing.SenderFirstName, existing.SenderMiddleName, existing.SenderLastName);
+            existing.SenderLastName2 = UpdateIfNull(existing.SenderLastName2, transaction.SenderLastName2);
+            existing.Sender = ConcatenateNames(existing.SenderFirstName, existing.SenderMiddleName, existing.SenderLastName, existing.SenderLastName2);
 
             existing.SenderGender = UpdateIfNull(existing.SenderGender, transaction.SenderGender);
             existing.SenderDOB = UpdateIfNull(existing.SenderDOB, transaction.SenderDOB);
             existing.SenderPhotoIDType = UpdateIfNull(existing.SenderPhotoIDType, transaction.SenderPhotoIdType);
             existing.SenderPhotoIDNumber = UpdateIfNull(existing.SenderPhotoIDNumber, transaction.SenderPhotoIdNumber);
+            existing.SenderPhotoIDExpiryDate = UpdateIfNull(existing.SenderPhotoIDExpiryDate, transaction.SenderPhotoIdExpiryDate);
+
             existing.SenderAddress1 = UpdateIfNull(existing.SenderAddress1, transaction.SenderAddress1);
             existing.SenderAddress2 = UpdateIfNull(existing.SenderAddress2, transaction.SenderAddress2);
             existing.SenderAddress3 = UpdateIfNull(existing.SenderAddress3, transaction.SenderAddress3);
@@ -243,7 +245,9 @@ namespace moneygram_api.Services.Implementations
             existing.ReceiverFirstName = UpdateIfNull(existing.ReceiverFirstName, transaction.ReceiverFirstName);
             existing.ReceiverMiddleName = UpdateIfNull(existing.ReceiverMiddleName, transaction.ReceiverMiddleName);
             existing.ReceiverLastName = UpdateIfNull(existing.ReceiverLastName, transaction.ReceiverLastName);
-            existing.Receiver = ConcatenateNames(existing.ReceiverFirstName, existing.ReceiverMiddleName, existing.ReceiverLastName);
+            existing.ReceiverLastName2 = UpdateIfNull(existing.ReceiverLastName2, transaction.ReceiverLastName2);
+
+            existing.Receiver = ConcatenateNames(existing.ReceiverFirstName, existing.ReceiverMiddleName, existing.ReceiverLastName, existing.ReceiverLastName2);
 
             existing.ReceiverAddress1 = UpdateIfNull(existing.ReceiverAddress1, transaction.ReceiverAddress1);
             existing.ReceiverAddress2 = UpdateIfNull(existing.ReceiverAddress2, transaction.ReceiverAddress2);
@@ -254,6 +258,7 @@ namespace moneygram_api.Services.Implementations
             existing.ReceiverZipCode = UpdateIfNull(existing.ReceiverZipCode, transaction.ReceiverZipCode);
             existing.ReceiverPhotoIDType = UpdateIfNull(existing.ReceiverPhotoIDType, transaction.ReceiverPhotoIDType);
             existing.ReceiverPhotoIDNumber = UpdateIfNull(existing.ReceiverPhotoIDNumber, transaction.ReceiverPhotoIDNumber);
+            existing.ReceiverPhotoIDExpiryDate = UpdateIfNull(existing.ReceiverPhotoIDExpiryDate, transaction.ReceiverPhotoIDExpiryDate);
             existing.ReceiverPhoneNumber = UpdateIfNull(existing.ReceiverPhoneNumber, transaction.ReceiverPhoneNumber);
 
             existing.Occupation = UpdateIfNull(existing.Occupation, transaction.Occupation);
@@ -287,15 +292,18 @@ namespace moneygram_api.Services.Implementations
             return new SendTransaction
             {
                 SessionID = transaction.SessionID,
+                RewardsNumber = transaction.RewardsNumber,
                 ReferenceNumber = transaction.ReferenceNumber,
                 SenderFirstName = transaction.SenderFirstName,
                 SenderMiddleName = transaction.SenderMiddleName,
                 SenderLastName = transaction.SenderLastName,
-                Sender = ConcatenateNames(transaction.SenderFirstName, transaction.SenderMiddleName, transaction.SenderLastName),
+                SenderLastName2 = transaction.SenderLastName2,
+                Sender = ConcatenateNames(transaction.SenderFirstName, transaction.SenderMiddleName, transaction.SenderLastName, transaction.SenderLastName2),
                 SenderGender = transaction.SenderGender,
                 SenderDOB = transaction.SenderDOB,
                 SenderPhotoIDType = transaction.SenderPhotoIdType,
                 SenderPhotoIDNumber = transaction.SenderPhotoIdNumber,
+                SenderPhotoIDExpiryDate = transaction.SenderPhotoIdExpiryDate,
                 SenderPhotoIDCountry = transaction.SenderPhotoIdCountry,
                 SenderAddress1 = transaction.SenderAddress1,
                 SenderAddress2 = transaction.SenderAddress2,
@@ -315,7 +323,8 @@ namespace moneygram_api.Services.Implementations
                 ReceiverFirstName = transaction.ReceiverFirstName,
                 ReceiverMiddleName = transaction.ReceiverMiddleName,
                 ReceiverLastName = transaction.ReceiverLastName,
-                Receiver = ConcatenateNames(transaction.ReceiverFirstName, transaction.ReceiverMiddleName, transaction.ReceiverLastName),
+                ReceiverLastName2 = transaction.ReceiverLastName2,
+                Receiver = ConcatenateNames(transaction.ReceiverFirstName, transaction.ReceiverMiddleName, transaction.ReceiverLastName, transaction.ReceiverLastName2),
                 ReceiverAddress1 = transaction.ReceiverAddress1,
                 ReceiverAddress2 = transaction.ReceiverAddress2,
                 ReceiverAddress3 = transaction.ReceiverAddress3,
@@ -325,6 +334,7 @@ namespace moneygram_api.Services.Implementations
                 ReceiverZipCode = transaction.ReceiverZipCode,
                 ReceiverPhotoIDType = transaction.ReceiverPhotoIDType,
                 ReceiverPhotoIDNumber = transaction.ReceiverPhotoIDNumber,
+                ReceiverPhotoIDExpiryDate = transaction.ReceiverPhotoIDExpiryDate,
                 ReceiverPhoneNumber = transaction.ReceiverPhoneNumber,
                 Occupation = transaction.Occupation,
                 TransactionPurpose = transaction.TransactionPurpose,

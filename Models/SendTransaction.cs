@@ -6,11 +6,13 @@ namespace moneygram_api.Models
     {
         public long ID { get; set; }
         public string? SessionID { get; set; }
+        public string? RewardsNumber { get; set; }
         public string? ReferenceNumber { get; set; }
         public string? Sender { get; set; }
         public string? SenderFirstName { get; set; }
         public string? SenderMiddleName { get; set; }
         public string? SenderLastName { get; set; }
+        public string? SenderLastName2 { get; set; }
         public string? SenderAddress1 { get; set; }
         public string? SenderAddress2 { get; set; }
         public string? SenderAddress3 { get; set; }
@@ -20,6 +22,7 @@ namespace moneygram_api.Models
         public string? SenderZipCode { get; set; }
         public string? SenderPhotoIDType { get; set; }
         public string? SenderPhotoIDNumber { get; set; }
+        public string? SenderPhotoIDExpiryDate { get; set; }
         public string? SenderPhotoIDCountry { get; set; }
         public string? SenderPhotoIDState { get; set; }
         public string? SenderLegalIDType { get; set; }
@@ -32,6 +35,7 @@ namespace moneygram_api.Models
         public string? ReceiverFirstName { get; set; }
         public string? ReceiverMiddleName { get; set; }
         public string? ReceiverLastName { get; set; }
+        public string? ReceiverLastName2 { get; set; }
         public string? ReceiverAddress1 { get; set; }
         public string? ReceiverAddress2 { get; set; }
         public string? ReceiverAddress3 { get; set; }
@@ -40,6 +44,7 @@ namespace moneygram_api.Models
         public string? ReceiverState { get; set; }
         public string? ReceiverZipCode { get; set; }
         public string? ReceiverPhotoIDType { get; set; }
+        public string? ReceiverPhotoIDExpiryDate { get; set; }
         public string? ReceiverPhotoIDNumber { get; set; }
         public string? ReceiverPhotoIDCountry { get; set; }
         public string? ReceiverPhotoIDState { get; set; }

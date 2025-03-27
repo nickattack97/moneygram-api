@@ -6,10 +6,12 @@ namespace moneygram_api.DTOs
     {
         public long? recordId { get; set; }
         public string? SessionID { get; set; }
+        public string? RewardsNumber { get; set; }
         public string? ReferenceNumber { get; set; }
         public string? SenderFirstName { get; set; }
         public string? SenderMiddleName { get; set; }
         public string? SenderLastName { get; set; }
+        public string? SenderLastName2 { get; set; }
         public string? SenderGender { get; set; }
         public string? SenderDOB { get; set; }
         public string? SenderBirthCountry { get; set; }
@@ -35,6 +37,7 @@ namespace moneygram_api.DTOs
         public string? ReceiverFirstName { get; set; }
         public string? ReceiverMiddleName { get; set; }
         public string? ReceiverLastName { get; set; }
+        public string? ReceiverLastName2 { get; set; }
         public string? ReceiverAddress1 { get; set; }
         public string? ReceiverAddress2 { get; set; }
         public string? ReceiverAddress3 { get; set; }
