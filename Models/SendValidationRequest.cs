@@ -69,9 +69,14 @@ public class SendValidationRequest
 
     [XmlElement(ElementName = "senderFirstName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderFirstName { get; set; }
+    [XmlElement(ElementName = "senderMiddleName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? SenderMiddleName { get; set; }
 
     [XmlElement(ElementName = "senderLastName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderLastName { get; set; }
+    
+    [XmlElement(ElementName = "senderLastName2", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? SenderLastName2 { get; set; }
 
     [XmlElement(ElementName = "senderAddress", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string SenderAddress { get; set; }
@@ -102,6 +107,9 @@ public class SendValidationRequest
 
     [XmlElement(ElementName = "receiverLastName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiverLastName { get; set; }
+
+    [XmlElement(ElementName = "receiverLastName2", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? ReceiverLastName2 { get; set; }
 
     [XmlElement(ElementName = "receiverAddress", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ReceiverAddress { get; set; }

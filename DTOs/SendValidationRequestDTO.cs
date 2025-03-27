@@ -13,8 +13,64 @@ namespace moneygram_api.DTOs
         public string? ReceiveAgentID { get; set; }
         public string? RewardsNumber { get; set; }
         public string? AccountNumber { get; set; }
-        public string SenderFirstName { get; set; }
-        public string SenderLastName { get; set; }
+
+        public string SenderFirstName 
+        { 
+            get => _senderFirstName; 
+            set => _senderFirstName = value?.Trim(); 
+        }
+        private string _senderFirstName;
+
+        public string? SenderMiddleName 
+        { 
+            get => _senderMiddleName; 
+            set => _senderMiddleName = value?.Trim(); 
+        }
+        private string? _senderMiddleName;
+
+        public string SenderLastName 
+        { 
+            get => _senderLastName; 
+            set => _senderLastName = value?.Trim(); 
+        }
+        private string _senderLastName;
+
+        public string? SenderLastName2 
+        { 
+            get => _senderLastName2; 
+            set => _senderLastName2 = value?.Trim(); 
+        }
+        private string? _senderLastName2;
+
+        public string ReceiverFirstName 
+        { 
+            get => _receiverFirstName; 
+            set => _receiverFirstName = value?.Trim(); 
+        }
+        private string _receiverFirstName;
+
+        public string? ReceiverMiddleName 
+        { 
+            get => _receiverMiddleName; 
+            set => _receiverMiddleName = value?.Trim(); 
+        }
+        private string? _receiverMiddleName;
+
+        public string ReceiverLastName 
+        { 
+            get => _receiverLastName; 
+            set => _receiverLastName = value?.Trim(); 
+        }
+        private string _receiverLastName;
+
+        public string? ReceiverLastName2 
+        { 
+            get => _receiverLastName2; 
+            set => _receiverLastName2 = value?.Trim(); 
+        }
+        private string? _receiverLastName2;
+
+        // Rest of the properties remain the same
         public string SenderAddress { get; set; }
         public string SenderAddress2 { get; set; }
         public string? SenderState { get; set; }
@@ -22,9 +78,6 @@ namespace moneygram_api.DTOs
         public string SenderCity { get; set; }
         public string SenderCountry { get; set; }
         public string SenderHomePhone { get; set; }
-        public string ReceiverFirstName { get; set; }
-        public string? ReceiverMiddleName { get; set; }
-        public string ReceiverLastName { get; set; }
         public string ReceiverAddress { get; set; }
         public string ReceiverAddress2 { get; set; }
         public string ReceiverCity { get; set; }
@@ -33,7 +86,7 @@ namespace moneygram_api.DTOs
         public string ReceiverPhoneCountryCode { get; set; }
         public string SenderPhotoIdType { get; set; }
         public string SenderPhotoIdNumber { get; set; }
-        public DateTime? SenderPhotoIdExpiryDate { get; set; }
+        public string? SenderPhotoIdExpiryDate { get; set; }
         public string SenderPhotoIdCountry { get; set; }
         public string SenderLegalIdType { get; set; }
         public string SenderLegalIdNumber { get; set; }
@@ -60,7 +113,7 @@ namespace moneygram_api.DTOs
         public string SenderHomePhoneCountryCode { get; set; }
         public string SenderIntendedUseOfMGIServices { get; set; }
         public string? PromoCode { get; set; }
-        public List<KeyValuePair>? FieldValues { get; set; } 
+        public List<KeyValuePair>? FieldValues { get; set; }
     }
 
     public class KeyValuePair
