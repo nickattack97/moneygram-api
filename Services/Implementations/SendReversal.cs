@@ -70,9 +70,9 @@ namespace moneygram_api.Services.Implementations
                     DateTime.UtcNow
                 );
             }
-
+    
             // Validate SendReversalReason requirement for ReversalType.R
-            if (request.ReversalType == Enums.ReversalType.R && request.SendReversalReason == default)
+            if (request.ReversalType == Enums.ReversalType.R && string.IsNullOrEmpty(request.SendReversalReason.ToString()))
             {
                 throw new BaseCustomException(
                     400,
@@ -113,6 +113,7 @@ namespace moneygram_api.Services.Implementations
                         ReferenceNumber = request.ReferenceNumber,
                         OperatorName = operatorName.Length > 7 ? operatorName.Substring(0, 7) : operatorName,
                         ReversalType = request.ReversalType.ToString(),
+                        FeeRefund = request.RefundFee.ToString(),
                         SendReversalReason = request.SendReversalReason.ToString(),
                         CommunicationRetryIndicator = false,
                         TimeStamp = DateTime.UtcNow,

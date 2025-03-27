@@ -47,4 +47,17 @@ namespace moneygram_api.Enums
         /// </summary>
         R
     }
+
+    public enum RefundFee
+    {
+        /// <summary>
+        /// No: Fee not refunded.
+        /// </summary>
+        N,
+
+        /// <summary>
+        /// Yes: Fee refunded.
+        /// </summary>
+        Y
+    }
 }

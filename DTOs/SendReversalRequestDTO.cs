@@ -8,5 +8,6 @@ namespace moneygram_api.DTOs
         public string ReferenceNumber { get; set; }
         public ReversalType ReversalType { get; set; }
         public SendReversalReason SendReversalReason { get; set; }
+        public RefundFee RefundFee { get; set; }
     }
 }
