@@ -90,9 +90,11 @@ namespace moneygram_api.Services.Implementations
 
         private class TransactionDto
         {
+            public string? RewardsNumber { get; set; }
             public string? ReceiverFirstName { get; set; }
             public string? ReceiverMiddleName { get; set; }
             public string? ReceiverLastName { get; set; }
+            public string? ReceiverLastName2 { get; set; }
             public string? ReceiverAddress1 { get; set; }
             public string? ReceiverAddress2 { get; set; }
             public string? ReceiverCity { get; set; }
@@ -103,6 +105,7 @@ namespace moneygram_api.Services.Implementations
             public string? SendCurrency { get; set; }
             public string? ReceiveCurrency { get; set; }
             public decimal? SendAmount { get; set; }
+            public string? SenderLastName2 { get; set; }
             public string? SenderDOB { get; set; }
             public DateTime? ProcessDate { get; set; }
         }
@@ -194,6 +197,7 @@ namespace moneygram_api.Services.Implementations
                 SenderFirstName = customer.FirstName ?? string.Empty,
                 SenderMiddleName = customer.MiddleName ?? string.Empty,
                 SenderLastName = customer.Surname ?? string.Empty,
+                SenderLastName2 = string.Empty,
                 SenderGender = Enum.TryParse(customer.Gender?.Trim().ToUpper(), out Gender gender) ? gender.ToString() : string.Empty,
                 SenderAddress = customer.Address ?? string.Empty,
                 SenderAddress2 = customer.Suburb ?? string.Empty,
@@ -210,6 +214,12 @@ namespace moneygram_api.Services.Implementations
             };
 
             var senderDOBString = mostRecentTransactions.FirstOrDefault()?.SenderDOB;
+            var rewardsNumber = mostRecentTransactions.FirstOrDefault()?.RewardsNumber;
+            var senderLastName2 = mostRecentTransactions.FirstOrDefault()?.SenderLastName2;
+
+            senderInfo.SenderLastName2 = senderLastName2;
+            senderInfo.FreqCustCardNumber = rewardsNumber;
+
             if (DateTime.TryParse(senderDOBString, out var senderDOB))
             {
                 senderInfo.SenderDOBObject = senderDOB;
@@ -226,6 +236,7 @@ namespace moneygram_api.Services.Implementations
                     t.ReceiverFirstName,
                     t.ReceiverMiddleName,
                     t.ReceiverLastName,
+                    t.ReceiverLastName2,
                     t.ReceiverCountry,
                     t.ReceiverPhoneNumber,
                     t.ReceiverPhotoIDNumber,
@@ -237,6 +248,7 @@ namespace moneygram_api.Services.Implementations
                     ReceiverFirstName = t.ReceiverFirstName ?? string.Empty,
                     ReceiverMiddleName = t.ReceiverMiddleName ?? string.Empty,
                     ReceiverLastName = t.ReceiverLastName ?? string.Empty,
+                    ReceiverLastName2 = t.ReceiverLastName2 ?? string.Empty,
                     ReceiverAddress = t.ReceiverAddress1 ?? string.Empty,
                     ReceiverAddress2 = t.ReceiverAddress2 ?? string.Empty,
                     ReceiverCity = t.ReceiverCity ?? string.Empty,
@@ -259,6 +271,7 @@ namespace moneygram_api.Services.Implementations
                     SenderFirstName = senderInfo.SenderFirstName,
                     SenderMiddleName = senderInfo.SenderMiddleName,
                     SenderLastName = senderInfo.SenderLastName,
+                    SenderLastName2 = senderInfo.SenderLastName2,
                     SenderGender = senderInfo.SenderGender,
                     SenderAddress = senderInfo.SenderAddress,
                     SenderAddress2 = senderInfo.SenderAddress2,
