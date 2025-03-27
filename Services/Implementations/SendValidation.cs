@@ -53,6 +53,12 @@ namespace moneygram_api.Services.Implementations
             restRequest.AddHeader("SOAPAction", "urn:AgentConnect1512#sendValidation");
             restRequest.AddHeader("Content-Type", "application/xml");
 
+            DateTime? senderPhotoExpiry = DateTime.TryParse(request.SenderPhotoIdExpiryDate, out var parsedDate) ? parsedDate : (DateTime?)null;
+            if (senderPhotoExpiry.HasValue)
+            {
+                senderPhotoExpiry = senderPhotoExpiry.Value.Date;
+            }
+
             var envelope = new RequestEnvelope
             {
                 Body = new RequestBody
@@ -76,7 +82,9 @@ namespace moneygram_api.Services.Implementations
                         DeliveryOption = request.DeliveryOption,
                         ReceiveCurrency = request.ReceiveCurrency,
                         SenderFirstName = request.SenderFirstName,
+                        SenderMiddleName = string.IsNullOrEmpty(request.SenderMiddleName) ? null : request.SenderMiddleName,
                         SenderLastName = request.SenderLastName,
+                        SenderLastName2 = string.IsNullOrEmpty(request.SenderLastName2) ? null : request.SenderLastName2,
                         SenderAddress = request.SenderAddress,
                         SenderAddress2 = request.SenderAddress2,
                         SenderCity = request.SenderCity,
@@ -87,6 +95,7 @@ namespace moneygram_api.Services.Implementations
                         ReceiverFirstName = request.ReceiverFirstName,
                         ReceiverMiddleName = string.IsNullOrEmpty(request.ReceiverMiddleName) ? null : request.ReceiverMiddleName,
                         ReceiverLastName = request.ReceiverLastName,
+                        ReceiverLastName2 = string.IsNullOrEmpty(request.ReceiverLastName2) ? null : request.ReceiverLastName2,
                         ReceiverAddress = request.ReceiverAddress,
                         ReceiverAddress2 = request.ReceiverAddress2,
                         ReceiverCity = request.ReceiverCity,
@@ -94,9 +103,9 @@ namespace moneygram_api.Services.Implementations
                         ReceiverPhone = request.ReceiverPhone,
                         ReceiverPhoneCountryCode = request.ReceiverPhoneCountryCode,
                         SenderPhotoIdType = request.SenderPhotoIdType,
-                        SenderPhotoIdExpirationDay = request.SenderPhotoIdExpiryDate?.ToString("dd") ?? string.Empty,
-                        SenderPhotoIdExpirationMonth = request.SenderPhotoIdExpiryDate?.ToString("MM") ?? string.Empty,
-                        SenderPhotoIdExpirationYear = request.SenderPhotoIdExpiryDate?.ToString("yyyy") ?? string.Empty,
+                        SenderPhotoIdExpirationDay = senderPhotoExpiry?.ToString("dd") ?? string.Empty,
+                        SenderPhotoIdExpirationMonth = senderPhotoExpiry?.ToString("MM") ?? string.Empty,
+                        SenderPhotoIdExpirationYear = senderPhotoExpiry?.ToString("yyyy") ?? string.Empty,
                         SenderPhotoIdNumber = request.SenderPhotoIdNumber,
                         SenderPhotoIdCountry = request.SenderPhotoIdCountry,
                         SenderLegalIdType = request.SenderLegalIdType,
