@@ -59,6 +59,9 @@ namespace moneygram_api.Models.SendReversalRequest
 
         [XmlElement(ElementName = "sendReversalReason", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string SendReversalReason { get; set; }
+       
+        [XmlElement(ElementName = "feeRefund", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+        public string FeeRefund { get; set; }
 
         [XmlElement(ElementName = "communicationRetryIndicator", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public bool CommunicationRetryIndicator { get; set; }
