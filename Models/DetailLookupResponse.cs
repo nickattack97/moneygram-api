@@ -69,15 +69,20 @@ namespace moneygram_api.Models.DetailLookupResponse
 
         [XmlElement(ElementName = "receiverFirstName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string ReceiverFirstName { get; set; }
+        
+        [XmlElement(ElementName = "receiverMiddleName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+        public string? ReceiverMiddleName { get; set; }
 
-        [XmlElement(ElementName = "receiverLastName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+        [XmlElement(ElementName = "receiverLastName", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
         public string ReceiverLastName { get; set; }
+        [XmlElement(ElementName = "receiverLastName2", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
+        public string ReceiverLastName2 { get; set; }
 
         [XmlElement(ElementName = "receiverAddress", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string ReceiverAddress { get; set; }
 
         [XmlElement(ElementName = "receiverAddress2", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-        public string ReceiverAddress2 { get; set; }
+        public string? ReceiverAddress2 { get; set; }
 
         [XmlElement(ElementName = "receiverCity", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string ReceiverCity { get; set; }
