@@ -48,7 +48,13 @@ namespace moneygram_api.Models.AmendTransactionRequest
         [XmlElement(ElementName = "receiverFirstName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string ReceiverFirstName { get; set; }
 
+        [XmlElement(ElementName = "receiverMiddleName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+        public string? ReceiverMiddleName { get; set; }
+
         [XmlElement(ElementName = "receiverLastName", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public string ReceiverLastName { get; set; }
+
+        [XmlElement(ElementName = "receiverLastName2", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+        public string? ReceiverLastName2 { get; set; }
     }
 }

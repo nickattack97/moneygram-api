@@ -10,6 +10,8 @@ using RequestBody = moneygram_api.Models.AmendTransactionRequest.Body;
 using moneygram_api.DTOs;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
+using moneygram_api.Models;
+using Microsoft.AspNetCore.Server.HttpSys;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -17,11 +19,16 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly SoapContext _soapContext;
 
-        public AmendTransaction(IConfigurations configurations, IHttpContextAccessor httpContextAccessor)
+        public AmendTransaction(
+            IConfigurations configurations, 
+            IHttpContextAccessor httpContextAccessor,
+            SoapContext soapContext)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
         }
 
         public async Task<AmendTransactionResponse> Amend(AmendTransactionRequestDTO request)
@@ -61,14 +68,16 @@ namespace moneygram_api.Services.Implementations
                         ReferenceNumber = request.ReferenceNumber,
                         OperatorName = operatorName.Length > 7 ? operatorName.Substring(0, 7) : operatorName,
                         ReceiverFirstName = request.ReceiverFirstName,
+                        ReceiverMiddleName = string.IsNullOrEmpty(request.ReceiverMiddleName) ? null : request.ReceiverMiddleName,
                         ReceiverLastName = request.ReceiverLastName,
+                        ReceiverLastName2 = string.IsNullOrEmpty(request.ReceiverLastName2) ? null : request.ReceiverLastName2,
                         TimeStamp = DateTime.UtcNow,
                     }
                 }
             };
 
-
             var body = envelope.ToString();
+            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -81,6 +90,8 @@ namespace moneygram_api.Services.Implementations
                 }
                 return res;
             });
+
+            _soapContext.ResponseXml = response.Content;
 
             if (response.IsSuccessful)
             {
