@@ -84,7 +84,7 @@ namespace moneygram_api.Middleware
                 string p when p.EndsWith("/api/sends/consumer-lookup") => "ConsumerLookup",
                 string p when p.EndsWith("/api/sends/send-validation") => "SendValidation",
                 string p when p.EndsWith("/api/sends/save-rewards") => "SaveRewards",
-                string p when p.EndsWith("/api/sends/detail-lookup") => "DetailLookup",
+                string p when p.Contains("/api/sends/detail-lookup") => "DetailLookup",
                 string p when p.EndsWith("/api/sends/commit-transaction") => "CommitTransaction",
                 string p when p.EndsWith("/api/sends/amend-transaction") => "AmendTransaction",
                 string p when p.EndsWith("/api/sends/send-reversal") => "SendReversal",
