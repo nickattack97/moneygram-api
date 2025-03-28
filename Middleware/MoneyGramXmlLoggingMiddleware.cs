@@ -1,12 +1,9 @@
-// MoneyGramXmlLoggingMiddleware.cs
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using moneygram_api.Models;
 using moneygram_api.Services.Interfaces;
 using System;
-using System.IO;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace moneygram_api.Middleware
@@ -32,15 +29,14 @@ namespace moneygram_api.Middleware
             }
 
             string operation = GetOperationFromRequest(context);
-            long logId = 0;
-
+            
             try
             {
                 // Process request
                 await _next(context);
 
-                // Log using the SOAP context values
-                logId = await LogXmlInteraction(
+                // Log using the SOAP context values if available
+                await LogXmlInteractionIfAvailable(
                     context, 
                     serviceScopeFactory,
                     operation,
@@ -51,10 +47,11 @@ namespace moneygram_api.Middleware
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in MoneyGram XML logging");
-                // Log partial information if available
+                
+                // Log partial information if request XML is available
                 if (soapContext.RequestXml != null)
                 {
-                    await LogXmlInteraction(
+                    await LogXmlInteractionIfAvailable(
                         context,
                         serviceScopeFactory,
                         operation,
@@ -65,7 +62,37 @@ namespace moneygram_api.Middleware
                 throw;
             }
         }
-       private bool IsMoneyGramRequest(HttpContext context)
+
+        private async Task LogXmlInteractionIfAvailable(
+            HttpContext context,
+            IServiceScopeFactory serviceScopeFactory,
+            string operation,
+            string requestXml,
+            string responseXml)
+        {
+            // Only log if both RequestXml and ResponseXml are not null or empty
+            if (!string.IsNullOrWhiteSpace(requestXml) && !string.IsNullOrWhiteSpace(responseXml))
+            {
+                using var scope = serviceScopeFactory.CreateScope();
+                var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
+                var username = context.Items["Username"]?.ToString() ?? "Anonymous";
+
+                var xmlLog = new MoneyGramXmlLog
+                {
+                    Operation = operation,
+                    RequestXml = requestXml,
+                    ResponseXml = responseXml,
+                    LogTime = DateTime.UtcNow,
+                    Username = username,
+                    HttpMethod = context.Request.Method,
+                    Url = $"{context.Request.Path}{context.Request.QueryString}"
+                };
+
+                await loggingService.LogMoneyGramXmlAsync(xmlLog);
+            }
+        }
+
+        private bool IsMoneyGramRequest(HttpContext context)
         {  
             if (context.Request.Method == HttpMethods.Options)
                 return false;
@@ -84,43 +111,20 @@ namespace moneygram_api.Middleware
                 string p when p.EndsWith("/api/sends/consumer-lookup") => "ConsumerLookup",
                 string p when p.EndsWith("/api/sends/send-validation") => "SendValidation",
                 string p when p.EndsWith("/api/sends/save-rewards") => "SaveRewards",
-                string p when p.Contains("/api/sends/detail-lookup") => "DetailLookup",
+                string p when p.EndsWith("/api/sends/detail-lookup") => "DetailLookup",
                 string p when p.EndsWith("/api/sends/commit-transaction") => "CommitTransaction",
                 string p when p.EndsWith("/api/sends/amend-transaction") => "AmendTransaction",
                 string p when p.EndsWith("/api/sends/send-reversal") => "SendReversal",
                 string p when p.EndsWith("/api/sends/filtered-fee-lookup") => "FeeLookup",
                 string p when p.EndsWith("/api/sends/gffp") => "GFFP",
-                string p when p.EndsWith("/api/sends/filtered-code-table") => "CodeTable",
+                string p when p.EndsWith("/api/sends/code-table") => "CodeTable",
+                string p when p.EndsWith("/api/sends/country-info") => "CountryInfo",
+                string p when p.EndsWith("/api/sends/currency-info") => "CurrencyInfo",
                 _ => "Unknown"
             };
         }
-
-        private async Task<long> LogXmlInteraction(
-            HttpContext context,
-            IServiceScopeFactory serviceScopeFactory,
-            string operation,
-            string requestXml,
-            string responseXml)
-        {
-            using var scope = serviceScopeFactory.CreateScope();
-            var loggingService = scope.ServiceProvider.GetRequiredService<ILoggingService>();
-            var username = context.Items["Username"]?.ToString() ?? "Anonymous";
-
-            var xmlLog = new MoneyGramXmlLog
-            {
-                Operation = operation,
-                RequestXml = requestXml,
-                ResponseXml = responseXml,
-                LogTime = DateTime.UtcNow,
-                Username = username,
-                HttpMethod = context.Request.Method,
-                Url = $"{context.Request.Path}{context.Request.QueryString}"
-            };
-
-            await loggingService.LogMoneyGramXmlAsync(xmlLog);
-            return xmlLog.Id;
-        }
     }
+
     public static class MoneyGramXmlLoggingMiddlewareExtensions
     {
         public static IApplicationBuilder UseMoneyGramXmlLogging(
