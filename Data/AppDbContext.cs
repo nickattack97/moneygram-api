@@ -15,7 +15,7 @@ namespace moneygram_api.Data
         public DbSet<CurrencyInfoEntity> CurrencyInfo { get; set; }
         public DbSet<StateProvinceInfoEntity> StatesProvincesInfo { get; set; }
         public DbSet<MoneyGramXmlLog> MoneyGramXmlLogs { get; set; }
-        public DbSet<WebhookLog> WebhookLogs { get; set; } 
+        public DbSet<WebhookLog> WebhookLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -34,8 +34,16 @@ namespace moneygram_api.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Operation).IsRequired().HasMaxLength(50);
-                entity.Property(e => e.RequestXml).IsRequired();
-                entity.Property(e => e.ResponseXml).IsRequired();
+                
+                entity.Property(e => e.RequestXml)
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)");
+                
+                entity.Property(e => e.ResponseXml)
+                    .IsRequired()
+                    .HasColumnType("nvarchar(max)")
+                    .HasColumnName("ResponseXml"); 
+                
                 entity.Property(e => e.LogTime).IsRequired();
                 entity.Property(e => e.Username).HasMaxLength(100);
                 entity.Property(e => e.HttpMethod).HasMaxLength(10);
@@ -46,7 +54,7 @@ namespace moneygram_api.Data
             modelBuilder.Entity<CountryInfoEntity>().ToTable("CountriesInfo");
             modelBuilder.Entity<CurrencyInfoEntity>().ToTable("CurrencyInfo");
             modelBuilder.Entity<StateProvinceInfoEntity>().ToTable("StatesProvincesInfo");
-            modelBuilder.Entity<WebhookLog>().ToTable("WebhookLogs"); 
+            modelBuilder.Entity<WebhookLog>().ToTable("WebhookLogs");
         }
     }
 }
