@@ -12,6 +12,7 @@ using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
 using System.Linq;
 using moneygram_api.Models;
+using moneygram_api.Data;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -19,15 +20,21 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly SoapContext _soapContext;
+        private readonly AppDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public GetCountryInfo(IConfigurations configurations, SoapContext soapContext)
+        public GetCountryInfo(IConfigurations configurations, SoapContext soapContext, IHttpContextAccessor httpContextAccessor, AppDbContext context)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
+             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public async Task<CountryInfoResponse> Fetch(string? countryCode = null)
         {
+            string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString()  ?? "Anonymous";
+
             var options = new RestClientOptions(_configurations.BaseUrl)
             {
                 MaxTimeout = 30000,
@@ -78,6 +85,18 @@ namespace moneygram_api.Services.Implementations
             });
 
             _soapContext.ResponseXml = response.Content;
+            var xmlLog = new MoneyGramXmlLog
+            {
+                Operation = "CountryInfo",
+                RequestXml = body,
+                ResponseXml = response.Content,
+                LogTime = DateTime.UtcNow,
+                Username = operatorName,
+                HttpMethod = "GET",
+                Url = "/api/sends/country-info"
+            };
+
+            await LogMoneyGramXmlAsync(xmlLog);
 
             if (response.IsSuccessful)
             {
@@ -159,6 +178,11 @@ namespace moneygram_api.Services.Implementations
                     DateTime.UtcNow
                 );
             }
+        }
+        private async Task LogMoneyGramXmlAsync(MoneyGramXmlLog xmlLog)
+        {
+            _context.MoneyGramXmlLogs.Add(xmlLog);
+            await _context.SaveChangesAsync();
         }
     }
 }

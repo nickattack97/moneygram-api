@@ -3,6 +3,7 @@ using moneygram_api.Models.CodeTableResponse;
 using moneygram_api.Services.Interfaces;
 using moneygram_api.Settings;
 using moneygram_api.DTOs;
+using moneygram_api.Data;
 using RestSharp;
 using System.Threading.Tasks;
 using RequestEnvelope = moneygram_api.Models.CodeTableRequest.Envelope;
@@ -19,17 +20,22 @@ namespace moneygram_api.Services.Implementations
     {
         private readonly IConfigurations _configurations;
         private readonly IFetchCurrencyInfo _fetchCurrencyInfo;
-        private readonly SoapContext _soapContext;
+        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly AppDbContext _context;
 
-        public FetchCodeTable(IConfigurations configurations, IFetchCurrencyInfo fetchCurrencyInfo, SoapContext soapContext)
+
+        public FetchCodeTable(IConfigurations configurations, IFetchCurrencyInfo fetchCurrencyInfo, IHttpContextAccessor httpContextAccessor, AppDbContext context)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _fetchCurrencyInfo = fetchCurrencyInfo ?? throw new ArgumentNullException(nameof(fetchCurrencyInfo));
-            _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public async Task<CodeTableResponse> Fetch(CodeTableRequestDTO request)
         {
+            string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString()  ?? "Anonymous";
+
             if (request == null)
             {
                 throw new BaseCustomException(400, "Request cannot be null.", nameof(request), DateTime.UtcNow);
@@ -65,7 +71,6 @@ namespace moneygram_api.Services.Implementations
             };
 
             var body = envelope.ToString();
-            _soapContext.RequestXml = body;
             restRequest.AddParameter("application/xml", body, ParameterType.RequestBody);
 
             var response = await RetryHelper.RetryOnExceptionAsync(3, async () =>
@@ -83,8 +88,19 @@ namespace moneygram_api.Services.Implementations
                 }
                 return res;
             });
-            
-            _soapContext.ResponseXml = response.Content;
+                        
+            var xmlLog = new MoneyGramXmlLog
+            {
+                Operation = "CodeTable",
+                RequestXml = body,
+                ResponseXml = response.Content,
+                LogTime = DateTime.UtcNow,
+                Username = operatorName,
+                HttpMethod = "POST",
+                Url = "/api/sends/code-table"
+            };
+
+            await LogMoneyGramXmlAsync(xmlLog);
 
             if (response.IsSuccessful)
             {
@@ -162,6 +178,12 @@ namespace moneygram_api.Services.Implementations
             };
 
             return filteredCodeTable;
+        }
+
+        private async Task LogMoneyGramXmlAsync(MoneyGramXmlLog xmlLog)
+        {
+            _context.MoneyGramXmlLogs.Add(xmlLog);
+            await _context.SaveChangesAsync();
         }
     }
 }
