@@ -39,4 +39,13 @@ public class CommitTransactionResponse
 
     [XmlElement(ElementName = "transactionDateTime", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public DateTime TransactionDateTime { get; set; }
+
+    [XmlElement(ElementName = "referenceNumberTextCode", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public int ReferenceNumberTextCode { get; set; }
+
+    [XmlElement(ElementName = "referenceNumberText", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? ReferenceNumberText { get; set; }
+
+    [XmlElement(ElementName = "referenceNumberConsumerText", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? ReferenceNumberConsumerText { get; set; }
 }
