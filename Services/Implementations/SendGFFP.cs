@@ -60,7 +60,7 @@ namespace moneygram_api.Services.Implementations
                         DeliveryOption = request.DeliveryOption,
                         ThirdPartyType = "NONE",
                         ReceiveCurrency = request.ReceiveCurrency,
-                        ReceiveAgentID = request.ReceiveAgentID,
+                        ReceiveAgentID = string.IsNullOrWhiteSpace(request.ReceiveAgentID) ? null : request.ReceiveAgentID,
                         Amount = request.Amount,
                         SendCurrency = request.SendCurrency,
                         ProductType = "SEND",
