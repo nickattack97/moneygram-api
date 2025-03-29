@@ -49,8 +49,8 @@ public class GetFieldsForProductRequest
     [XmlElement(ElementName = "thirdPartyType", Namespace = "http://www.moneygram.com/AgentConnect1512")]
     public string ThirdPartyType { get; set; }
 
-    [XmlElement(ElementName = "receiveAgentID", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = true)]
-    public string ReceiveAgentID { get; set; }
+    [XmlElement(ElementName = "receiveAgentID", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+    public string? ReceiveAgentID { get; set; }
 
     [XmlElement(ElementName = "customerReceiveNumber", Namespace = "http://www.moneygram.com/AgentConnect1512", IsNullable = false)]
     public string CustomerReceiveNumber { get; set; }
