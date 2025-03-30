@@ -31,6 +31,8 @@ namespace moneygram_api.Settings
         string ProxyPassword { get; } 
         string CustomerLookupQuery { get; }
         string TransactionsLookupQuery { get; }
+        string CountriesFilePath { get; }
+        string IndiaBankBranchesFilePath { get; }
     }
 
     public class Configurations : IConfigurations
@@ -68,6 +70,7 @@ namespace moneygram_api.Settings
         public int ProxyPort => int.TryParse(_configuration.GetSection("ProxySettings")["ProxyPort"], out var result) ? result : 0;
         public string CustomerLookupQuery => _configuration.GetSection("DatabaseQueries")["CustomerLookupQuery"] ?? "SELECT * FROM tblClientele WHERE NationalID = {0}";
         public string TransactionsLookupQuery => _configuration.GetSection("DatabaseQueries")["TransactionsLookupQuery"] ?? "SELECT * FROM SendTransactions WHERE SenderPhotoIDNumber = {0} AND Successful = 1";
-    
+        public string CountriesFilePath => _configuration.GetSection("LocalMediaSettings")["CountriesFilePath"] ?? string.Empty;
+        public string IndiaBankBranchesFilePath => _configuration.GetSection("LocalMediaSettings")["IndiaBankBranchesFilePath"] ?? string.Empty;
     }
 }
