@@ -1,18 +1,18 @@
-using moneygram_api.Data;
-using moneygram_api.Models;
-using moneygram_api.Services.Interfaces;
-using moneygram_api.DTOs;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using moneygram_api.Data;
+using moneygram_api.Models;
+using moneygram_api.Services.Interfaces;
+using moneygram_api.DTOs;
 
 namespace moneygram_api.Services.Implementations
 {
     public class MGSendTransactionService : IMGSendTransactionService
     {
         private readonly AppDbContext _context;
-        private readonly KycDbContext _kycContext; 
+        private readonly KycDbContext _kycContext;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public MGSendTransactionService(AppDbContext context, KycDbContext kycContext, IHttpContextAccessor httpContextAccessor)
@@ -29,18 +29,14 @@ namespace moneygram_api.Services.Implementations
 
         public async Task<List<SendTransaction>> GetTransactionsByUserAsync(string username = null)
         {
-            // If no username is provided, get the current user from the context
             if (string.IsNullOrEmpty(username))
             {
                 username = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
-                
                 if (string.IsNullOrEmpty(username))
                 {
                     throw new UnauthorizedAccessException("Username not found in token. Re-authenticate.");
                 }
             }
-            
-            // Query transactions where TellerId matches the specified username
             return await _context.SendTransactions
                 .Where(t => t.TellerId == username)
                 .OrderByDescending(t => t.AddDate)
@@ -50,12 +46,10 @@ namespace moneygram_api.Services.Implementations
         public async Task<List<SendTransaction>> GetMyTransactionsAsync()
         {
             string username = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
-            
             if (string.IsNullOrEmpty(username))
             {
                 throw new UnauthorizedAccessException("Username not found in token. Re-authenticate.");
             }
-            
             return await GetTransactionsByUserAsync(username);
         }
 
@@ -72,7 +66,6 @@ namespace moneygram_api.Services.Implementations
             {
                 throw new InvalidOperationException($"Transaction with reference number {referenceNumber} not found.");
             }
-
             return transaction;
         }
 
@@ -90,7 +83,7 @@ namespace moneygram_api.Services.Implementations
 
             return await query
                 .OrderBy(id => id)
-                .Take(50) // Limit results to prevent overwhelming the frontend
+                .Take(50)
                 .ToListAsync();
         }
 
@@ -109,13 +102,12 @@ namespace moneygram_api.Services.Implementations
             return await query
                 .Where(phone => phone != null)
                 .OrderBy(phone => phone)
-                .Take(50) // Limit results to prevent overwhelming the frontend
+                .Take(50)
                 .ToListAsync();
         }
 
         public async Task<Response> LogTransactionAsync(MGSendTransactionDTO transaction)
         {
-            // Log the transaction to SendTransactions
             var existingTransaction = await _context.SendTransactions.FirstOrDefaultAsync(t =>
                 t.ID == transaction.recordId || (t.SessionID == transaction.SessionID));
 
@@ -132,7 +124,6 @@ namespace moneygram_api.Services.Implementations
                 _context.SendTransactions.Add(transactionEntity);
             }
 
-            // Check and log sender to tblClientele if not exists
             await LogSenderToClienteleAsync(transaction);
 
             var result = await _context.SaveChangesAsync();
@@ -146,16 +137,40 @@ namespace moneygram_api.Services.Implementations
             };
         }
 
+        // New method to check PRI eligibility
+        public async Task<bool> CheckPRIEligibilityAsync(string senderPhotoIdNumber, string receiverPhotoIdNumber, decimal amount)
+        {
+            if (string.IsNullOrEmpty(senderPhotoIdNumber) || string.IsNullOrEmpty(receiverPhotoIdNumber))
+            {
+                throw new ArgumentNullException("Sender or receiver photo ID number cannot be null.");
+            }
+
+            // Check amount threshold
+            if (amount <= 105)
+            {
+                return false;
+            }
+
+            // Check for transactions in the last 24 hours
+            var cutoffTime = DateTime.UtcNow.AddHours(-24);
+            var recentTransactions = await _context.SendTransactions
+                .Where(t => t.SenderPhotoIDNumber == senderPhotoIdNumber &&
+                            t.ReceiverPhotoIDNumber == receiverPhotoIdNumber &&
+                            t.AddDate.HasValue && t.AddDate.Value >= cutoffTime &&
+                            t.Successful == true)
+                .CountAsync();
+
+            return recentTransactions == 0;
+        }
+
         private async Task LogSenderToClienteleAsync(MGSendTransactionDTO transaction)
         {
             var existingClient = await _kycContext.tblClientele
                 .FirstOrDefaultAsync(c => c.NationalID == transaction.SenderPhotoIdNumber);
 
-            // Extract pure Base64 from data URI if present
             string base64String = transaction.idImage ?? "";
             if (base64String.StartsWith("data:image/"))
             {
-                // Split on comma and take the part after it
                 var parts = base64String.Split(',');
                 if (parts.Length > 1)
                 {
@@ -176,11 +191,11 @@ namespace moneygram_api.Services.Implementations
                     City = transaction.SenderCity ?? "",
                     District = "",
                     Suburb = transaction.SenderAddress2 ?? "",
-                    NatID_Image = string.IsNullOrEmpty(base64String) 
-                        ? Array.Empty<byte>() 
+                    NatID_Image = string.IsNullOrEmpty(base64String)
+                        ? Array.Empty<byte>()
                         : Convert.FromBase64String(base64String),
-                    Img_Format = MimeToExtension.TryGetValue(transaction.contentType ?? "image/jpeg", out var extension) 
-                        ? extension 
+                    Img_Format = MimeToExtension.TryGetValue(transaction.contentType ?? "image/jpeg", out var extension)
+                        ? extension
                         : ".jpeg",
                     ContentType = transaction.contentType ?? "image/jpeg",
                     AddDate = transaction.AddDate ?? DateTime.Now,
@@ -193,10 +208,9 @@ namespace moneygram_api.Services.Implementations
             }
             else if (!string.IsNullOrEmpty(base64String) && (existingClient.NatID_Image == null || existingClient.NatID_Image.Length == 0))
             {
-                // Update KYC image if missing
                 existingClient.NatID_Image = Convert.FromBase64String(base64String);
-                existingClient.Img_Format = MimeToExtension.TryGetValue(transaction.contentType ?? "image/jpeg", out var extension) 
-                                            ? extension 
+                existingClient.Img_Format = MimeToExtension.TryGetValue(transaction.contentType ?? "image/jpeg", out var extension)
+                                            ? extension
                                             : ".jpeg";
                 existingClient.ContentType = transaction.contentType ?? "image/jpeg";
                 existingClient.ModifiedDate = DateTime.Now;
@@ -246,7 +260,6 @@ namespace moneygram_api.Services.Implementations
             existing.ReceiverMiddleName = UpdateIfNull(existing.ReceiverMiddleName, transaction.ReceiverMiddleName);
             existing.ReceiverLastName = UpdateIfNull(existing.ReceiverLastName, transaction.ReceiverLastName);
             existing.ReceiverLastName2 = UpdateIfNull(existing.ReceiverLastName2, transaction.ReceiverLastName2);
-
             existing.Receiver = ConcatenateNames(existing.ReceiverFirstName, existing.ReceiverMiddleName, existing.ReceiverLastName, existing.ReceiverLastName2);
 
             existing.ReceiverAddress1 = UpdateIfNull(existing.ReceiverAddress1, transaction.ReceiverAddress1);
@@ -283,7 +296,6 @@ namespace moneygram_api.Services.Implementations
         private SendTransaction CreateNewTransaction(MGSendTransactionDTO transaction)
         {
             string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
-
             if (string.IsNullOrEmpty(operatorName))
             {
                 throw new UnauthorizedAccessException("Username name not found in token. Re-authenticate.");
@@ -341,7 +353,7 @@ namespace moneygram_api.Services.Implementations
                 SourceOfFunds = transaction.SourceOfFunds,
                 ConsumerID = transaction.ConsumerID,
                 TellerId = operatorName,
-                Reversed = transaction.Reversed ?? false, 
+                Reversed = transaction.Reversed ?? false,
                 ReversalTime = transaction.ReversalTime,
                 ReversalReason = transaction.ReversalReason,
                 ReversalTellerId = transaction.ReversalTellerId
@@ -356,7 +368,7 @@ namespace moneygram_api.Services.Implementations
             { "image/gif", ".gif" },
             { "image/bmp", ".bmp" },
             { "image/webp", ".webp" },
-            { "application/pdf", ".pdf" } // Added PDF support
+            { "application/pdf", ".pdf" }
         };
 
         private static T UpdateIfNull<T>(T existingValue, T newValue)
