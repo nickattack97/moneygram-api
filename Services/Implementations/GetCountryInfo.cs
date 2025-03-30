@@ -118,7 +118,15 @@ namespace moneygram_api.Services.Implementations
                         .ToList();
                 }
 
-                CountryDataLoader.LoadCountryData("Media/countries_data.json");
+                // Load country data from JSON file
+                var filePath = _configurations.CountriesFilePath;
+
+                if (string.IsNullOrEmpty(filePath))
+                {
+                    throw new BaseCustomException(500, "Countries file path is not configured.", "filePath", DateTime.UtcNow);
+                }
+                
+                CountryDataLoader.LoadCountryData(filePath);
 
                 foreach (var country in distinctCountries)
                 {
