@@ -29,6 +29,7 @@ namespace moneygram_api.Controllers
         private readonly IDetailLookup _detailLookup;
         private readonly ISendReversal _sendReversal; 
         private readonly IAmendTransaction _amendTransaction;
+        private readonly IBankBranchService _bankBranchService;
 
         public SendsController(
             ISendConsumerLookUp sendConsumerLookUp,
@@ -45,7 +46,8 @@ namespace moneygram_api.Controllers
             ILocalCurrencyInfoService localCurrencyInfoService,
             IDetailLookup detailLookup, 
             ISendReversal sendReversal, 
-            IAmendTransaction amendTransaction) 
+            IAmendTransaction amendTransaction,
+            IBankBranchService bankBranchService) 
         {
             _sendConsumerLookUp = sendConsumerLookUp;
             _feeLookUp = feeLookUp;
@@ -62,6 +64,7 @@ namespace moneygram_api.Controllers
             _detailLookup = detailLookup;
             _sendReversal = sendReversal; 
             _amendTransaction = amendTransaction; 
+            _bankBranchService = bankBranchService;
         }
 
         [HttpPost("consumer-lookup")]
@@ -241,6 +244,62 @@ namespace moneygram_api.Controllers
         public async Task<IActionResult> GetMySendTransactions()
         {
             return await HandleRequestAsync(() => _sendTransactionService.GetMyTransactionsAsync(), "SendsController.GetMySendTransactions");
+        }
+
+        [HttpGet("india-banks")]
+        public async Task<IActionResult> GetAllINDBranches([FromQuery] int page = 1, [FromQuery] int pageSize = 1000)
+        {
+            return await HandleRequestAsync(async () =>
+            {
+                var branches = await _bankBranchService.GetAllBranchesAsync();
+                var totalCount = branches.Count;
+                
+                // Implement pagination
+                var paginatedBranches = branches
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+
+                return new
+                {
+                    TotalCount = totalCount,
+                    Page = page,
+                    PageSize = pageSize,
+                    Branches = paginatedBranches
+                };
+            }, "SendsController.GetAllINDBranches");
+        }
+        
+        [HttpPost("check-pri-eligibility")]
+        public async Task<IActionResult> CheckPRIEligibility([FromBody] PRIEligibilityRequestDTO request)
+        {
+            if (request == null || string.IsNullOrEmpty(request.SenderPhotoIdNumber) || string.IsNullOrEmpty(request.ReceiverPhotoIdNumber))
+            {
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "priEligibilityRequest"));
+            }
+            return await HandleRequestAsync(async () => new
+            {
+                IsEligible = await _sendTransactionService.CheckPRIEligibilityAsync(request.SenderPhotoIdNumber, request.ReceiverPhotoIdNumber, request.Amount)
+            }, "SendsController.CheckPRIEligibility");
+        }
+
+        [HttpGet("india-banks/{ifscCode}")]
+        public async Task<IActionResult> GetINDBranchByIFSC(string ifscCode)
+        {
+            if (string.IsNullOrWhiteSpace(ifscCode))
+            {
+                return BadRequest(ErrorDictionary.GetErrorResponse(400, "ifscCode"));
+            }
+
+            return await HandleRequestAsync(async () =>
+            {
+                var branch = await _bankBranchService.GetBranchByIFSCAsync(ifscCode);
+                if (branch == null)
+                {
+                    throw new Exception("Branch not found");
+                }
+                return branch;
+            }, "SendsController.GetINDBranchByIFSC");
         }
 
         [HttpGet("national-ids")]
