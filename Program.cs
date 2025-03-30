@@ -133,6 +133,9 @@ builder.Services.AddScoped<IDetailLookup, DetailLookup>();
 // Register the ISendReversal service
 builder.Services.AddScoped<ISendReversal, SendReversal>();
 
+// Register the IBankBranchService service
+builder.Services.AddScoped<IBankBranchService, BankBranchService>();
+
 builder.Services.AddScoped<SoapContext>();
 
 // Configure CORS
