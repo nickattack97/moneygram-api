@@ -11,6 +11,7 @@ using moneygram_api.DTOs;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
 using moneygram_api.Models;
+using moneygram_api.Data;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -19,12 +20,14 @@ namespace moneygram_api.Services.Implementations
         private readonly IConfigurations _configurations;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly SoapContext _soapContext;
+        private readonly AppDbContext _context;
 
-        public DetailLookup(IConfigurations configurations, IHttpContextAccessor httpContextAccessor, SoapContext soapContext)
+        public DetailLookup(IConfigurations configurations, IHttpContextAccessor httpContextAccessor, SoapContext soapContext, AppDbContext context)
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
         public async Task<DetailLookupResponse> Lookup(string referenceNumber)
@@ -86,6 +89,19 @@ namespace moneygram_api.Services.Implementations
 
             _soapContext.ResponseXml = response.Content;
 
+            var xmlLog = new MoneyGramXmlLog
+            {
+                Operation = "DetailLookUp",
+                RequestXml = body,
+                ResponseXml = response.Content,
+                LogTime = DateTime.UtcNow,
+                Username = operatorName,
+                HttpMethod = "GET",
+                Url = "/api/sends/detail-look-up"
+            };
+
+            await LogMoneyGramXmlAsync(xmlLog);
+
             if (response.IsSuccessful)
             {
                 if (string.IsNullOrEmpty(response.Content))
@@ -105,6 +121,12 @@ namespace moneygram_api.Services.Implementations
                 var errorResponse = ErrorDictionary.GetErrorResponse((int)response.StatusCode, response.Content ?? $"Request failed with status code {response.StatusCode}");
                 throw new BaseCustomException(errorResponse.ErrorCode, errorResponse.ErrorMessage, errorResponse.OffendingField, DateTime.UtcNow);
             }
+        }
+
+        private async Task LogMoneyGramXmlAsync(MoneyGramXmlLog xmlLog)
+        {
+            _context.MoneyGramXmlLogs.Add(xmlLog);
+            await _context.SaveChangesAsync();
         }
     }
 }
