@@ -11,6 +11,7 @@ using moneygram_api.DTOs;
 using moneygram_api.Exceptions;
 using moneygram_api.Utilities;
 using moneygram_api.Models;
+using moneygram_api.Data;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -21,19 +22,23 @@ namespace moneygram_api.Services.Implementations
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMGSendTransactionService _sendTransactionService; 
         private readonly SoapContext _soapContext;
+        private readonly AppDbContext _context;
 
         public SendReversal(
             IConfigurations configurations,
             IDetailLookup detailLookup,
             IHttpContextAccessor httpContextAccessor,
             IMGSendTransactionService sendTransactionService,
-            SoapContext soapContext) 
+            SoapContext soapContext,
+            AppDbContext context) 
         {
             _configurations = configurations ?? throw new ArgumentNullException(nameof(configurations));
             _detailLookup = detailLookup ?? throw new ArgumentNullException(nameof(detailLookup));
             _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
             _sendTransactionService = sendTransactionService ?? throw new ArgumentNullException(nameof(sendTransactionService));
             _soapContext = soapContext ?? throw new ArgumentNullException(nameof(soapContext));
+            _context = context ?? throw new ArgumentNullException(nameof(context));
+
         }
 
         public async Task<SendReversalResponse> Reverse(SendReversalRequestDTO request)
@@ -138,6 +143,18 @@ namespace moneygram_api.Services.Implementations
             
             _soapContext.ResponseXml = response.Content;
 
+            var xmlLog = new MoneyGramXmlLog
+            {
+                Operation = "SendReversal",
+                RequestXml = body,
+                ResponseXml = response.Content,
+                LogTime = DateTime.UtcNow,
+                Username = operatorName,
+                HttpMethod = "POST",
+                Url = "/api/sends/send-reversal"
+            };
+            await LogMoneyGramXmlAsync(xmlLog);
+
             if (response.IsSuccessful)
             {
                 if (string.IsNullOrEmpty(response.Content))
@@ -188,6 +205,11 @@ namespace moneygram_api.Services.Implementations
                 var errorResponse = ErrorDictionary.GetErrorResponse((int)response.StatusCode, response.Content ?? $"Request failed with status code {response.StatusCode}");
                 throw new BaseCustomException(errorResponse.ErrorCode, errorResponse.ErrorMessage, errorResponse.OffendingField, DateTime.UtcNow);
             }
+        }
+        private async Task LogMoneyGramXmlAsync(MoneyGramXmlLog xmlLog)
+        {
+            _context.MoneyGramXmlLogs.Add(xmlLog);
+            await _context.SaveChangesAsync();
         }
     }
 }
