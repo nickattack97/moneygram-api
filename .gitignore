@@ -410,3 +410,5 @@ ASALocalRun/
 Media/generate-test-signature.sh
 Media/gen-keys-signature.md
 Media/bearer_token.txt
+.vscode/launch.json
+.vscode/tasks.json
