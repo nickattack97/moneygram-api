@@ -34,16 +34,15 @@ namespace moneygram_api.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Operation).IsRequired().HasMaxLength(50);
-                
+
                 entity.Property(e => e.RequestXml)
-                    .IsRequired()
-                    .HasColumnType("nvarchar(max)");
-                
+                .IsRequired()
+                .HasColumnType("xml");
+
                 entity.Property(e => e.ResponseXml)
-                    .IsRequired()
-                    .HasColumnType("nvarchar(max)")
-                    .HasColumnName("ResponseXml"); 
-                
+                .IsRequired()
+                .HasColumnType("xml");
+
                 entity.Property(e => e.LogTime).IsRequired();
                 entity.Property(e => e.Username).HasMaxLength(100);
                 entity.Property(e => e.HttpMethod).HasMaxLength(10);
