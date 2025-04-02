@@ -5,6 +5,8 @@ using moneygram_api.Models;
 using moneygram_api.Services.Interfaces;
 using System;
 using System.Threading.Tasks;
+using System.Xml;
+using System.Text.RegularExpressions;
 
 namespace moneygram_api.Middleware
 {
@@ -70,6 +72,10 @@ namespace moneygram_api.Middleware
             string requestXml,
             string responseXml)
         {
+            // Clean XML before saving
+            var cleanedRequest = CleanXml(requestXml);
+            var cleanedResponse = CleanXml(responseXml);
+
             // Only log if both RequestXml and ResponseXml are not null or empty
             if (!string.IsNullOrWhiteSpace(requestXml) && !string.IsNullOrWhiteSpace(responseXml))
             {
@@ -80,8 +86,8 @@ namespace moneygram_api.Middleware
                 var xmlLog = new MoneyGramXmlLog
                 {
                     Operation = operation,
-                    RequestXml = requestXml,
-                    ResponseXml = responseXml,
+                    RequestXml = cleanedRequest,
+                    ResponseXml = cleanedResponse,
                     LogTime = DateTime.UtcNow,
                     Username = username,
                     HttpMethod = context.Request.Method,
@@ -122,6 +128,27 @@ namespace moneygram_api.Middleware
                 string p when p.EndsWith("/api/sends/currency-info") => "CurrencyInfo",
                 _ => "Unknown"
             };
+        }
+
+        private string CleanXml(string xml)
+        {
+            try
+            {
+                // Remove encoding declaration
+                if (xml.StartsWith("<?xml"))
+                {
+                    xml = Regex.Replace(xml, @"encoding\s*=\s*[""'][^""']*[""']", "");
+                }
+                
+                // Validate XML structure
+                var doc = new XmlDocument();
+                doc.LoadXml(xml);
+                return doc.OuterXml;
+            }
+            catch (XmlException)
+            {
+                return "<error>Invalid XML content</error>";
+            }
         }
     }
 
