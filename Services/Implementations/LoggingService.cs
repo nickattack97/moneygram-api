@@ -6,6 +6,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security;
+using System.Xml;
 
 namespace moneygram_api.Services.Implementations
 {
@@ -43,6 +45,10 @@ namespace moneygram_api.Services.Implementations
 
         public async Task LogMoneyGramXmlAsync(MoneyGramXmlLog xmlLog)
         {
+            // Final validation before saving
+            xmlLog.RequestXml = EnsureValidXml(xmlLog.RequestXml);
+            xmlLog.ResponseXml = EnsureValidXml(xmlLog.ResponseXml);
+
             _context.MoneyGramXmlLogs.Add(xmlLog);
             await _context.SaveChangesAsync();
         }
@@ -105,6 +111,23 @@ namespace moneygram_api.Services.Implementations
                 query = query.Where(l => l.RequestBody.Contains($"\"transactionStatus\":\"{transactionStatus}\"", StringComparison.OrdinalIgnoreCase));
 
             return await query.OrderByDescending(l => l.RequestTime).ToListAsync();
+        }
+
+        private string EnsureValidXml(string xml)
+        {
+            if (string.IsNullOrWhiteSpace(xml)) return "<empty/>";
+            if (xml.StartsWith("<error>")) return xml;
+            
+            try
+            {
+                var doc = new XmlDocument();
+                doc.LoadXml(xml);
+                return doc.OuterXml;
+            }
+            catch
+            {
+                return $"<error>Invalid XML: {SecurityElement.Escape(xml)}</error>";
+            }
         }
     }
 }
