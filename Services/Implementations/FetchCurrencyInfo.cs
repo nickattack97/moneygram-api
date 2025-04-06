@@ -87,8 +87,8 @@ namespace moneygram_api.Services.Implementations
             var xmlLog = new MoneyGramXmlLog
             {
                 Operation = "CurrencyInfo",
-                RequestXml = body,
-                ResponseXml = response.Content,
+                RequestXml = XmlUtility.CleanXml(body),
+                ResponseXml = XmlUtility.CleanXml(response.Content),
                 LogTime = DateTime.UtcNow,
                 Username = operatorName,
                 HttpMethod = "GET",
