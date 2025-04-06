@@ -198,14 +198,15 @@ namespace moneygram_api.Controllers
             }
             return await HandleRequestAsync(() => _saveRewards.Save(request), "SendsController.SaveRewards");
         }
-        [HttpGet("detail-lookup/{referenceNumber}")]
-        public async Task<IActionResult> DetailLookup(string referenceNumber)
+        [HttpGet("detail-lookup")]
+        public async Task<IActionResult> DetailLookup([FromQuery] string? referenceNumber = null, [FromQuery] string? transactionSessionId = null)
         {
-            if (string.IsNullOrEmpty(referenceNumber))
+            if (string.IsNullOrEmpty(referenceNumber) && string.IsNullOrEmpty(transactionSessionId))
             {
-            return BadRequest(ErrorDictionary.GetErrorResponse(400, "referenceNumber"));
+            return BadRequest(ErrorDictionary.GetErrorResponse(400, "referenceNumber or sessionId"));
             }
-            return await HandleRequestAsync(() => _detailLookup.Lookup(referenceNumber), "SendsController.DetailLookup");
+
+            return await HandleRequestAsync(() => _detailLookup.Lookup(referenceNumber, transactionSessionId), "SendsController.DetailLookup");
         }
 
         [HttpPost("send-reversal")]
