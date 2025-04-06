@@ -40,7 +40,10 @@ namespace moneygram_api.Models.DetailLookupRequest
         public string ChannelType { get; set; }
 
         [XmlElement(ElementName = "referenceNumber", Namespace = "http://www.moneygram.com/AgentConnect1512")]
-        public string ReferenceNumber { get; set; }
+        public string? ReferenceNumber { get; set; }
+        
+        [XmlElement(ElementName = "mgiTransactionSessionID", Namespace = "http://www.moneygram.com/AgentConnect1512")]
+        public string? MgiTransactionSessionID { get; set; }
 
         [XmlElement(ElementName = "includeUseData", Namespace = "http://www.moneygram.com/AgentConnect1512")]
         public bool IncludeUseData { get; set; }

@@ -5,6 +5,6 @@ namespace moneygram_api.Services.Interfaces
 {
     public interface IDetailLookup
     {
-        Task<DetailLookupResponse> Lookup(string referenceNumber);
+        Task<DetailLookupResponse> Lookup(string? referenceNumber, string? transactionSessionId);
     }
 }

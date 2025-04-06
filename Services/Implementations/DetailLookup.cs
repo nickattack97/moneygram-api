@@ -30,7 +30,7 @@ namespace moneygram_api.Services.Implementations
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<DetailLookupResponse> Lookup(string referenceNumber)
+        public async Task<DetailLookupResponse> Lookup(string? referenceNumber, string? transactionSessionId)
         {
             string operatorName = _httpContextAccessor.HttpContext?.Items["Username"]?.ToString();
 
@@ -64,7 +64,8 @@ namespace moneygram_api.Services.Implementations
                         ApiVersion = _configurations.ApiVersion,
                         ClientSoftwareVersion = _configurations.ClientSoftwareVer,
                         ChannelType = "LOCATION",
-                        ReferenceNumber = referenceNumber,
+                        ReferenceNumber = string.IsNullOrEmpty(referenceNumber) ? null : referenceNumber,
+                        MgiTransactionSessionID = string.IsNullOrEmpty(transactionSessionId) ? null : transactionSessionId,
                         IncludeUseData = false,
                         OperatorName = operatorName.Length > 7 ? operatorName.Substring(0, 7) : operatorName,
                         TimeStamp = DateTime.UtcNow,
@@ -92,15 +93,15 @@ namespace moneygram_api.Services.Implementations
             var xmlLog = new MoneyGramXmlLog
             {
                 Operation = "DetailLookUp",
-                RequestXml = body,
-                ResponseXml = response.Content,
+                RequestXml = XmlUtility.CleanXml(body),
+                ResponseXml = XmlUtility.CleanXml(response.Content),
                 LogTime = DateTime.UtcNow,
                 Username = operatorName,
                 HttpMethod = "GET",
                 Url = "/api/sends/detail-look-up"
             };
 
-            await LogMoneyGramXmlAsync(xmlLog);
+            //await LogMoneyGramXmlAsync(xmlLog);
 
             if (response.IsSuccessful)
             {
