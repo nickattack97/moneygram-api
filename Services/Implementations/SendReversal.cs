@@ -63,7 +63,7 @@ namespace moneygram_api.Services.Implementations
             }
 
             // Check transaction status first and fetch details
-            var detailResponse = await _detailLookup.Lookup(request.ReferenceNumber);
+            var detailResponse = await _detailLookup.Lookup(request.ReferenceNumber, null);
 
             // Validate transaction status
             if (!new[] { "AVAIL", "AFR", "PRCSS" }.Contains(detailResponse.TransactionStatus))
@@ -146,14 +146,14 @@ namespace moneygram_api.Services.Implementations
             var xmlLog = new MoneyGramXmlLog
             {
                 Operation = "SendReversal",
-                RequestXml = body,
-                ResponseXml = response.Content,
+                RequestXml = XmlUtility.CleanXml(body),
+                ResponseXml = XmlUtility.CleanXml(response.Content),
                 LogTime = DateTime.UtcNow,
                 Username = operatorName,
                 HttpMethod = "POST",
                 Url = "/api/sends/send-reversal"
             };
-            await LogMoneyGramXmlAsync(xmlLog);
+            //await LogMoneyGramXmlAsync(xmlLog);
 
             if (response.IsSuccessful)
             {
