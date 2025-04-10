@@ -11,6 +11,10 @@ autom4te.cache/
 tarballs/
 test-results/
 
+# Ignore appsettings files
+appsettings.json
+appsettings.Development.json
+
 # Test keys
 test-keys/
 *.pem
