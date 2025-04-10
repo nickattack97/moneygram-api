@@ -82,7 +82,7 @@ namespace moneygram_api.Services.Implementations
                 // For other errors, try to check the transaction status through detail lookup
                 try
                 {
-                    var detailLookupResponse = await _detailLookup.Lookup(request.mgiTransactionSessionID);
+                    var detailLookupResponse = await _detailLookup.Lookup(null, request.mgiTransactionSessionID);
                     
                     // If the transaction is already committed, return the successful status
                     if (detailLookupResponse.TransactionStatus.ToUpper() != "UNCOMMITTED")
